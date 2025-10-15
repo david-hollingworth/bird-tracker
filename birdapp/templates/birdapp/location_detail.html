@@ -1,0 +1,357 @@
+{% extends 'birdapp/base.html' %}
+{% load static %}
+
+{% block title %}{{ location.location_name }} - Bird Tracker{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <!-- Breadcrumb Navigation -->
+    <nav aria-label="breadcrumb" class="mb-3">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{% url 'location_list' %}">Locations</a></li>
+            {% with location.get_ancestors as ancestors %}
+                {% for ancestor in ancestors %}
+                    <li class="breadcrumb-item">
+                        <a href="{% url 'location_detail' ancestor.id %}">{{ ancestor.location_name }}</a>
+                    </li>
+                {% endfor %}
+            {% endwith %}
+            <li class="breadcrumb-item active" aria-current="page">{{ location.location_name }}</li>
+        </ol>
+    </nav>
+
+    <!-- Page Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="page-title mb-0">
+            <i class="bi bi-geo-alt-fill me-2"></i>{{ location.location_name }}
+        </h1>
+        <div class="btn-group">
+            <a href="{% url 'location_add' %}?parent={{ location.id }}" class="btn btn-success">
+                <i class="bi bi-plus-circle me-2"></i>Add Child Location
+            </a>
+            <a href="{% url 'location_edit' location.id %}" class="btn btn-primary">
+                <i class="bi bi-pencil me-2"></i>Edit
+            </a>
+            <button type="button" class="btn btn-danger" 
+                    onclick="deleteLocation({{ location.id }}, '{{ location.location_name|escapejs }}')">
+                <i class="bi bi-trash me-2"></i>Delete
+            </button>
+        </div>
+    </div>
+
+    <!-- Location Information -->
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <div class="card shadow-sm">
+                <div class="card-header bg-white">
+                    <h5 class="mb-0"><i class="bi bi-info-circle me-2"></i>Location Information</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <p><strong>Full Path:</strong> {{ location.get_full_path_string }}</p>
+                            {% if location.parent_location %}
+                            <p><strong>Parent Location:</strong> 
+                                <a href="{% url 'location_detail' location.parent_location.id %}">
+                                    {{ location.parent_location.location_name }}
+                                </a>
+                            </p>
+                            {% else %}
+                            <p><strong>Parent Location:</strong> <span class="text-muted">Top-level location</span></p>
+                            {% endif %}
+                        </div>
+                        <div class="col-md-6">
+                            <p><strong>Child Locations:</strong> {{ total_child_locations }}</p>
+                            <p><strong>Direct Sightings:</strong> {{ location.sighting_set.count }}</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Statistics Cards -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card stat-card shadow-sm">
+                <div class="card-body">
+                    <div class="stat-number">{{ total_sightings }}</div>
+                    <div class="stat-label">Total Sightings</div>
+                    <div class="stat-description">Including child locations</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card stat-card shadow-sm">
+                <div class="card-body">
+                    <div class="stat-number">{{ unique_species }}</div>
+                    <div class="stat-label">Unique Species</div>
+                    <div class="stat-description">Species seen here</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card stat-card shadow-sm">
+                <div class="card-body">
+                    <div class="stat-number">{{ child_locations|length }}</div>
+                    <div class="stat-label">Direct Children</div>
+                    <div class="stat-description">Immediate sub-locations</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card stat-card shadow-sm">
+                <div class="card-body">
+                    <div class="stat-number">{{ total_child_locations }}</div>
+                    <div class="stat-label">All Children</div>
+                    <div class="stat-description">Nested sub-locations</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Child Locations -->
+    {% if child_locations %}
+    <div class="card shadow-sm mb-4">
+        <div class="card-header bg-white">
+            <h5 class="mb-0"><i class="bi bi-map me-2"></i>Child Locations</h5>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Location Name</th>
+                            <th>Sightings</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for child in child_locations %}
+                        <tr>
+                            <td>
+                                <a href="{% url 'location_detail' child.id %}" class="text-decoration-none">
+                                    <i class="bi bi-geo-alt me-2"></i>{{ child.location_name }}
+                                </a>
+                            </td>
+                            <td>
+                                {% if child.sighting_count > 0 %}
+                                    <span class="badge bg-success">{{ child.sighting_count }}</span>
+                                {% else %}
+                                    <span class="text-muted">0</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <a href="{% url 'location_detail' child.id %}" class="btn btn-sm btn-outline-primary">
+                                    <i class="bi bi-eye me-1"></i>View
+                                </a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Recent Sightings -->
+    {% if sightings %}
+    <div class="card shadow-sm mb-4">
+        <div class="card-header bg-white d-flex justify-content-between align-items-center">
+            <h5 class="mb-0"><i class="bi bi-binoculars me-2"></i>Recent Sightings</h5>
+            <a href="{% url 'location_list' %}?location={{ location.id }}" class="btn btn-sm btn-primary">
+                View All Sightings
+            </a>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Date</th>
+                            <th>Bird</th>
+                            <th>Specific Location</th>
+                            <th>Trip</th>
+                            <th>Count</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for sighting in sightings %}
+                        <tr>
+                            <td>{{ sighting.date_seen|date:"M d, Y" }}</td>
+                            <td>
+                                <a href="{% url 'bird_detail' sighting.bird.id %}" class="text-decoration-none">
+                                    {{ sighting.bird.english_name }}
+                                </a>
+                                {% if sighting.bird.latin_name %}
+                                    <br><small class="text-muted fst-italic">{{ sighting.bird.latin_name }}</small>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if sighting.location.id != location.id %}
+                                    <a href="{% url 'location_detail' sighting.location.id %}" class="text-decoration-none">
+                                        {{ sighting.location.location_name }}
+                                    </a>
+                                {% else %}
+                                    {{ sighting.location.location_name }}
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if sighting.trip %}
+                                    {{ sighting.trip.trip_name }}
+                                {% else %}
+                                    <span class="text-muted">—</span>
+                                {% endif %}
+                            </td>
+                            <td>{{ sighting.count }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        <div class="card-footer bg-white text-center">
+            <small class="text-muted">Showing {{ sightings|length }} most recent sightings</small>
+        </div>
+    </div>
+    {% else %}
+    <div class="alert alert-info">
+        <i class="bi bi-info-circle me-2"></i>
+        No sightings recorded for this location yet.
+    </div>
+    {% endif %}
+
+    <!-- Sighting Date Range -->
+    {% if first_sighting and latest_sighting %}
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <div class="card shadow-sm">
+                <div class="card-body">
+                    <h6 class="card-subtitle mb-2 text-muted">First Sighting</h6>
+                    <p class="card-text">
+                        <strong>{{ first_sighting.date_seen|date:"F d, Y" }}</strong><br>
+                        <a href="{% url 'bird_detail' first_sighting.bird.id %}" class="text-decoration-none">
+                            {{ first_sighting.bird.english_name }}
+                        </a>
+                    </p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card shadow-sm">
+                <div class="card-body">
+                    <h6 class="card-subtitle mb-2 text-muted">Latest Sighting</h6>
+                    <p class="card-text">
+                        <strong>{{ latest_sighting.date_seen|date:"F d, Y" }}</strong><br>
+                        <a href="{% url 'bird_detail' latest_sighting.bird.id %}" class="text-decoration-none">
+                            {{ latest_sighting.bird.english_name }}
+                        </a>
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Delete Confirmation Modal -->
+<div class="modal fade" id="deleteModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Confirm Deletion</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>Are you sure you want to delete the location "<strong id="delete-location-name"></strong>"?</p>
+                <p class="text-danger mb-0"><small>This action cannot be undone.</small></p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-danger" id="confirm-delete-btn">Delete</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+let deleteLocationId = null;
+let deleteModal = null;
+
+// Initialize modal when DOM is ready
+document.addEventListener('DOMContentLoaded', function() {
+    deleteModal = new bootstrap.Modal(document.getElementById('deleteModal'));
+});
+
+function deleteLocation(locationId, locationName) {
+    deleteLocationId = locationId;
+    document.getElementById('delete-location-name').textContent = locationName;
+    if (deleteModal) {
+        deleteModal.show();
+    }
+}
+
+document.getElementById('confirm-delete-btn').addEventListener('click', function() {
+    if (!deleteLocationId) return;
+
+    // Use the correct URL from Django
+    const deleteUrl = `{% url 'location_delete' 0 %}`.replace('0', deleteLocationId);
+
+    fetch(deleteUrl, {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': getCookie('csrftoken'),
+            'Content-Type': 'application/json',
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (deleteModal) {
+            deleteModal.hide();
+        }
+        if (data.success) {
+            showMessage(data.message, 'success');
+            setTimeout(() => window.location.href = '{% url "location_list" %}', 1000);
+        } else {
+            showMessage(data.message, 'danger');
+        }
+    })
+    .catch(error => {
+        if (deleteModal) {
+            deleteModal.hide();
+        }
+        showMessage('An error occurred while deleting the location.', 'danger');
+    });
+});
+
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+
+function showMessage(message, type) {
+    const alertDiv = document.createElement('div');
+    alertDiv.className = `alert alert-${type} alert-dismissible fade show`;
+    alertDiv.innerHTML = `
+        ${message}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    `;
+    document.querySelector('.container-fluid').insertBefore(alertDiv, document.querySelector('.container-fluid').firstChild);
+    
+    setTimeout(() => {
+        alertDiv.remove();
+    }, 5000);
+}
+</script>
+{% endblock %}

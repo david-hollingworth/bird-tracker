@@ -1,0 +1,154 @@
+{% extends 'birdapp/base.html' %}
+
+{% block title %}{% if trip %}Edit Trip{% else %}Add Trip{% endif %} - Bird Tracker{% endblock %}
+
+{% block content %}
+<div class="py-4">
+    <!-- Page Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="page-title">
+            <i class="bi bi-{% if trip %}pencil{% else %}plus-circle{% endif %} section-icon me-2"></i>
+            {% if trip %}Edit Trip{% else %}Add New Trip{% endif %}
+        </h1>
+        <a href="{% if trip %}{% url 'trip_detail' trip.id %}{% else %}{% url 'trip_list' %}{% endif %}" class="btn btn-outline-secondary">
+            <i class="bi bi-arrow-left me-2"></i>Cancel
+        </a>
+    </div>
+
+    <!-- Messages -->
+    {% if messages %}
+        {% for message in messages %}
+            <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                {{ message }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+        {% endfor %}
+    {% endif %}
+
+    <!-- Trip Form -->
+    <div class="row">
+        <div class="col-lg-8 mx-auto">
+            <div class="card shadow-sm">
+                <div class="card-body p-4">
+                    <form method="post">
+                        {% csrf_token %}
+                        
+                        <!-- Trip Name -->
+                        <div class="mb-4">
+                            <label for="trip_name" class="form-label fw-semibold">
+                                Trip Name <span class="text-danger">*</span>
+                            </label>
+                            <input type="text" 
+                                   class="form-control form-control-lg" 
+                                   id="trip_name" 
+                                   name="trip_name" 
+                                   value="{% if trip %}{{ trip.trip_name }}{% else %}{{ trip_name }}{% endif %}"
+                                   placeholder="e.g., Costa Rica Birding Adventure"
+                                   required>
+                            <div class="form-text">Give your trip a memorable name</div>
+                        </div>
+
+                        <!-- Date Range -->
+                        <div class="row mb-4">
+                            <div class="col-md-6">
+                                <label for="start_date" class="form-label fw-semibold">
+                                    Start Date <span class="text-danger">*</span>
+                                </label>
+                                <input type="date" 
+                                       class="form-control" 
+                                       id="start_date" 
+                                       name="start_date" 
+                                       value="{% if trip %}{{ trip.start_date|date:'Y-m-d' }}{% else %}{{ start_date }}{% endif %}"
+                                       required>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="end_date" class="form-label fw-semibold">
+                                    End Date <span class="text-danger">*</span>
+                                </label>
+                                <input type="date" 
+                                       class="form-control" 
+                                       id="end_date" 
+                                       name="end_date" 
+                                       value="{% if trip %}{{ trip.end_date|date:'Y-m-d' }}{% else %}{{ end_date }}{% endif %}"
+                                       required>
+                            </div>
+                        </div>
+
+                        <!-- Description -->
+                        <div class="mb-4">
+                            <label for="description" class="form-label fw-semibold">
+                                Description
+                            </label>
+                            <textarea class="form-control" 
+                                      id="description" 
+                                      name="description" 
+                                      rows="5"
+                                      placeholder="Add notes about your trip, such as destinations visited, weather conditions, or memorable moments...">{% if trip %}{{ trip.description }}{% else %}{{ description }}{% endif %}</textarea>
+                            <div class="form-text">Optional details about your trip</div>
+                        </div>
+
+                        <!-- Form Actions -->
+                        <div class="d-flex gap-2 justify-content-end">
+                            <a href="{% if trip %}{% url 'trip_detail' trip.id %}{% else %}{% url 'trip_list' %}{% endif %}" 
+                               class="btn btn-outline-secondary">
+                                <i class="bi bi-x-circle me-2"></i>Cancel
+                            </a>
+                            <button type="submit" class="btn btn-success">
+                                <i class="bi bi-check-circle me-2"></i>
+                                {% if trip %}Update Trip{% else %}Add Trip{% endif %}
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Helper Information -->
+            <div class="card mt-3 border-info">
+                <div class="card-body">
+                    <h6 class="card-title text-info">
+                        <i class="bi bi-info-circle me-2"></i>Tips
+                    </h6>
+                    <ul class="mb-0 small">
+                        <li>Give your trip a descriptive name that helps you remember it</li>
+                        <li>Make sure the end date is not before the start date</li>
+                        <li>You can add sightings to this trip later when recording bird observations</li>
+                        {% if trip %}
+                            <li>Editing trip dates won't affect existing sightings</li>
+                        {% endif %}
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Calculate and display trip duration
+    document.addEventListener('DOMContentLoaded', function() {
+        const startDate = document.getElementById('start_date');
+        const endDate = document.getElementById('end_date');
+        
+        function updateDuration() {
+            if (startDate.value && endDate.value) {
+                const start = new Date(startDate.value);
+                const end = new Date(endDate.value);
+                const diffTime = end - start;
+                const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                
+                if (diffDays >= 0) {
+                    // Could add a duration display here if desired
+                    endDate.setCustomValidity('');
+                } else {
+                    endDate.setCustomValidity('End date must be after start date');
+                }
+            }
+        }
+        
+        startDate.addEventListener('change', updateDuration);
+        endDate.addEventListener('change', updateDuration);
+    });
+</script>
+{% endblock %}

@@ -1,0 +1,10 @@
+<h1>Bird Nest</h1>
+{% if most_recent_sightings %}
+    <ul>
+    {% for sighting in most_recent_sightings %}
+        <li><a href="bird/{{ sighting.bird.id }}/">{{ sighting.bird.english_name }}</a></li>
+    {% endfor %}
+    </ul>
+{% else %}
+    <p>No sightings are available.</p>
+{% endif %}

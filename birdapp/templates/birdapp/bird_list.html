@@ -1,0 +1,492 @@
+{% extends 'birdapp/base.html' %}
+
+{% block title %}Bird Management - Bird Tracker{% endblock %}
+
+{% block extra_css %}
+/* Bird List Specific Styles */
+.bird-item {
+    transition: all 0.3s ease;
+    position: relative;
+}
+
+.bird-item:hover {
+    background-color: #f8f9fa;
+    transform: translateX(5px);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+}
+
+.bird-english {
+    font-size: 1.2em;
+    font-weight: 600;
+    color: var(--primary-green);
+    margin-bottom: 4px;
+}
+
+.bird-latin {
+    font-style: italic;
+    color: #666;
+    font-size: 1em;
+}
+
+.bird-french {
+    color: #888;
+    font-size: 0.9em;
+}
+
+.bird-info {
+    color: #666;
+    font-size: 0.95em;
+}
+
+.bird-info i {
+    color: var(--primary-green);
+    width: 16px;
+    text-align: center;
+}
+
+.sighting-count {
+    background: #e8f5e8;
+    color: var(--primary-green);
+    font-size: 0.85em;
+    font-weight: 500;
+}
+
+.sighting-count.multiple {
+    background: #fff3cd;
+    color: #856404;
+}
+
+.bird-actions {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+}
+
+.btn-action {
+    padding: 0.25rem 0.5rem;
+    font-size: 0.875rem;
+}
+
+.bird-checkbox {
+    transform: scale(1.2);
+}
+
+.bulk-actions {
+    background: #f8f9fa;
+    border-radius: 0.375rem;
+    display: none;
+}
+
+.bulk-actions.show {
+    display: block;
+}
+
+.search-section {
+    background: white;
+    border-radius: 0.5rem;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .bird-actions {
+        flex-direction: column;
+        gap: 0.25rem;
+    }
+    
+    .btn-action {
+        font-size: 0.75rem;
+        padding: 0.2rem 0.4rem;
+    }
+}
+{% endblock %}
+
+{% block content %}
+<div class="pt-4 pb-2 mb-4">
+    <div class="d-flex justify-content-between align-items-start flex-wrap">
+        <div>
+            <h1 class="page-title display-4 mb-2">Bird Management</h1>
+            <p class="text-muted fs-5">Manage your bird species database</p>
+        </div>
+        <div class="d-flex gap-2">
+            <a href="{% url 'family_list' %}" class="btn btn-outline-success">
+                <i class="bi bi-diagram-3 me-2"></i>Manage Families
+            </a>
+            <a href="{% url 'bird_add' %}" class="btn btn-success">
+                <i class="bi bi-plus-circle me-2"></i>Add New Bird
+            </a>
+        </div>
+    </div>
+</div>
+
+<!-- Search and Filter Section -->
+<div class="card search-section mb-4">
+    <div class="card-body">
+        <form method="get" class="row g-3">
+            <div class="col-md-6">
+                <label for="{{ form.search.id_for_label }}" class="form-label">Search Birds</label>
+                {{ form.search }}
+            </div>
+            <div class="col-md-4">
+                <label for="{{ form.family.id_for_label }}" class="form-label">Filter by Family</label>
+                {{ form.family }}
+            </div>
+            <div class="col-md-2 d-flex align-items-end gap-2">
+                <button type="submit" class="btn btn-primary">
+                    <i class="bi bi-search me-1"></i>Search
+                </button>
+                <a href="{% url 'bird_list' %}" class="btn btn-outline-secondary">
+                    <i class="bi bi-arrow-clockwise"></i>
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Bulk Actions Section -->
+<div class="bulk-actions mb-3 p-3" id="bulk-actions">
+    <div class="d-flex justify-content-between align-items-center">
+        <span id="selected-count">0 birds selected</span>
+        <div class="d-flex gap-2">
+            <button type="button" class="btn btn-outline-danger btn-sm" onclick="bulkDelete()">
+                <i class="bi bi-trash me-1"></i>Delete Selected
+            </button>
+            <button type="button" class="btn btn-outline-secondary btn-sm" onclick="clearSelection()">
+                Clear Selection
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Bird List -->
+<div class="card">
+    <div class="card-header bg-white border-bottom-2">
+        <div class="d-flex justify-content-between align-items-center">
+            <div class="d-flex align-items-center">
+                <i class="bi bi-list-check section-icon fs-4 me-3"></i>
+                <h2 class="section-title h3 mb-0">
+                    Birds ({{ total_birds }} total)
+                </h2>
+            </div>
+            <div class="form-check">
+                <input class="form-check-input" type="checkbox" id="select-all-checkbox" onchange="toggleSelectAll()">
+                <label class="form-check-label" for="select-all-checkbox">
+                    Select All
+                </label>
+            </div>
+        </div>
+    </div>
+    
+    <div class="card-body p-0">
+        {% if birds %}
+            <div class="list-group list-group-flush">
+                {% for bird in birds %}
+                    <div class="list-group-item bird-item border-0 px-4 py-3">
+                        <div class="d-flex justify-content-between align-items-start">
+                            <div class="d-flex align-items-start">
+                                <div class="form-check me-3">
+                                    <input class="form-check-input bird-checkbox" 
+                                           type="checkbox" 
+                                           value="{{ bird.id }}" 
+                                           id="bird-{{ bird.id }}"
+                                           onchange="updateSelection()">
+                                </div>
+                                
+                                <div class="flex-grow-1">
+                                    <div class="bird-english">{{ bird.english_name }}</div>
+                                    {% if bird.latin_name %}
+                                        <div class="bird-latin">{{ bird.latin_name }}</div>
+                                    {% endif %}
+                                    {% if bird.french_name %}
+                                        <div class="bird-french">{{ bird.french_name }}</div>
+                                    {% endif %}
+                                    
+                                    <div class="row g-2 mt-2">
+                                        {% if bird.family %}
+                                            <div class="col-auto">
+                                                <div class="bird-info d-flex align-items-center">
+                                                    <i class="bi bi-diagram-3 me-2"></i>
+                                                    {{ bird.family.family_name }}
+                                                </div>
+                                            </div>
+                                        {% endif %}
+                                        
+                                        {% if bird.species_status %}
+                                            <div class="col-auto">
+                                                <div class="bird-info d-flex align-items-center">
+                                                    <i class="bi bi-info-circle me-2"></i>
+                                                    {{ bird.species_status }}
+                                                </div>
+                                            </div>
+                                        {% endif %}
+                                        
+                                        <div class="col-auto">
+                                            <div class="bird-info d-flex align-items-center">
+                                                <i class="bi bi-eye me-2"></i>
+                                                {% if bird.sighting_count > 0 %}
+                                                    <span class="badge sighting-count {% if bird.sighting_count > 1 %}multiple{% endif %} rounded-pill">
+                                                        {{ bird.sighting_count }} sighting{{ bird.sighting_count|pluralize }}
+                                                    </span>
+                                                {% else %}
+                                                    <span class="text-muted">No sightings</span>
+                                                {% endif %}
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="bird-actions ms-3">
+                                <a href="{% url 'bird_detail' bird_id=bird.id %}" 
+                                   class="btn btn-outline-primary btn-action" 
+                                   title="View Details">
+                                    <i class="bi bi-eye"></i>
+                                </a>
+                                <a href="{% url 'bird_edit' bird_id=bird.id %}" 
+                                   class="btn btn-outline-secondary btn-action" 
+                                   title="Edit">
+                                    <i class="bi bi-pencil"></i>
+                                </a>
+                                <button type="button" 
+                                        class="btn btn-outline-danger btn-action" 
+                                        onclick="deleteBird({{ bird.id }}, '{{ bird.english_name|escapejs }}')"
+                                        title="Delete"
+                                        {% if bird.sighting_count > 0 %}disabled{% endif %}>
+                                    <i class="bi bi-trash"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+        {% else %}
+            <div class="text-center py-5">
+                <div class="mb-4">
+                    <i class="bi bi-search text-muted" style="font-size: 4rem;"></i>
+                </div>
+                <h3 class="h4 mb-3">No birds found</h3>
+                <p class="mb-4 text-muted">
+                    {% if request.GET.search or request.GET.family %}
+                        No birds match your search criteria. Try adjusting your filters.
+                    {% else %}
+                        Start building your bird database by adding your first species!
+                    {% endif %}
+                </p>
+                <a href="{% url 'bird_add' %}" class="btn btn-success">
+                    <i class="bi bi-plus-circle me-2"></i>Add Your First Bird
+                </a>
+            </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Pagination -->
+{% if is_paginated %}
+<div class="d-flex justify-content-center mt-4">
+    <nav aria-label="Bird list pagination">
+        <ul class="pagination">
+            {% if page_obj.has_previous %}
+                <li class="page-item">
+                    <a class="page-link" href="?page=1{% if request.GET.search %}&search={{ request.GET.search|urlencode }}{% endif %}{% if request.GET.family %}&family={{ request.GET.family }}{% endif %}">First</a>
+                </li>
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if request.GET.search %}&search={{ request.GET.search|urlencode }}{% endif %}{% if request.GET.family %}&family={{ request.GET.family }}{% endif %}">Previous</a>
+                </li>
+            {% endif %}
+
+            <li class="page-item active">
+                <span class="page-link">{{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+            </li>
+
+            {% if page_obj.has_next %}
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ page_obj.next_page_number }}{% if request.GET.search %}&search={{ request.GET.search|urlencode }}{% endif %}{% if request.GET.family %}&family={{ request.GET.family }}{% endif %}">Next</a>
+                </li>
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ page_obj.paginator.num_pages }}{% if request.GET.search %}&search={{ request.GET.search|urlencode }}{% endif %}{% if request.GET.family %}&family={{ request.GET.family }}{% endif %}">Last</a>
+                </li>
+            {% endif %}
+        </ul>
+    </nav>
+</div>
+{% endif %}
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Selection management
+let selectedBirds = new Set();
+
+function updateSelection() {
+    const checkboxes = document.querySelectorAll('.bird-checkbox:checked');
+    selectedBirds.clear();
+    
+    checkboxes.forEach(checkbox => {
+        selectedBirds.add(checkbox.value);
+    });
+    
+    updateBulkActionsDisplay();
+    updateSelectAllCheckbox();
+}
+
+function updateBulkActionsDisplay() {
+    const bulkActions = document.getElementById('bulk-actions');
+    const selectedCount = document.getElementById('selected-count');
+    
+    if (selectedBirds.size > 0) {
+        bulkActions.classList.add('show');
+        selectedCount.textContent = `${selectedBirds.size} bird${selectedBirds.size !== 1 ? 's' : ''} selected`;
+    } else {
+        bulkActions.classList.remove('show');
+    }
+}
+
+function updateSelectAllCheckbox() {
+    const selectAllCheckbox = document.getElementById('select-all-checkbox');
+    const allCheckboxes = document.querySelectorAll('.bird-checkbox');
+    
+    if (allCheckboxes.length === 0) {
+        selectAllCheckbox.checked = false;
+        selectAllCheckbox.indeterminate = false;
+        return;
+    }
+    
+    const checkedCount = selectedBirds.size;
+    
+    if (checkedCount === 0) {
+        selectAllCheckbox.checked = false;
+        selectAllCheckbox.indeterminate = false;
+    } else if (checkedCount === allCheckboxes.length) {
+        selectAllCheckbox.checked = true;
+        selectAllCheckbox.indeterminate = false;
+    } else {
+        selectAllCheckbox.checked = false;
+        selectAllCheckbox.indeterminate = true;
+    }
+}
+
+function toggleSelectAll() {
+    const selectAllCheckbox = document.getElementById('select-all-checkbox');
+    const birdCheckboxes = document.querySelectorAll('.bird-checkbox');
+    
+    birdCheckboxes.forEach(checkbox => {
+        checkbox.checked = selectAllCheckbox.checked;
+    });
+    
+    updateSelection();
+}
+
+function clearSelection() {
+    const birdCheckboxes = document.querySelectorAll('.bird-checkbox');
+    birdCheckboxes.forEach(checkbox => {
+        checkbox.checked = false;
+    });
+    updateSelection();
+}
+
+// Delete functions
+function deleteBird(birdId, birdName) {
+    if (!confirm(`Are you sure you want to delete "${birdName}"?`)) {
+        return;
+    }
+    
+    fetch(`/birds/${birdId}/delete/`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // Show success message
+            showMessage(data.message, 'success');
+            // Remove the bird row from the page
+            document.getElementById(`bird-${birdId}`).closest('.bird-item').remove();
+        } else {
+            showMessage(data.message, 'danger');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showMessage('An error occurred while deleting the bird.', 'danger');
+    });
+}
+
+function bulkDelete() {
+    if (selectedBirds.size === 0) {
+        showMessage('Please select at least one bird to delete.', 'warning');
+        return;
+    }
+    
+    const birdCount = selectedBirds.size;
+    if (!confirm(`Are you sure you want to delete ${birdCount} bird${birdCount !== 1 ? 's' : ''}?`)) {
+        return;
+    }
+    
+    const selectedBirdIds = Array.from(selectedBirds).join(',');
+    
+    fetch('/birds/bulk-delete/', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+        },
+        body: `selected_birds=${encodeURIComponent(selectedBirdIds)}`
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showMessage(data.message, 'success');
+            // Remove deleted birds from the page
+            selectedBirds.forEach(birdId => {
+                const birdElement = document.getElementById(`bird-${birdId}`);
+                if (birdElement) {
+                    birdElement.closest('.bird-item').remove();
+                }
+            });
+            clearSelection();
+        } else {
+            showMessage(data.message, 'danger');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showMessage('An error occurred while deleting the birds.', 'danger');
+    });
+}
+
+function showMessage(message, type) {
+    // Create alert element
+    const alertDiv = document.createElement('div');
+    alertDiv.className = `alert alert-${type} alert-dismissible fade show`;
+    alertDiv.innerHTML = `
+        ${message}
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    `;
+    
+    // Insert at top of main content
+    const mainContent = document.querySelector('main');
+    mainContent.insertBefore(alertDiv, mainContent.firstChild);
+    
+    // Auto-dismiss after 5 seconds
+    setTimeout(() => {
+        alertDiv.remove();
+    }, 5000);
+}
+
+// Add CSRF token to page
+document.addEventListener('DOMContentLoaded', function() {
+    // Add hidden CSRF token input if it doesn't exist
+    if (!document.querySelector('[name=csrfmiddlewaretoken]')) {
+        const csrfInput = document.createElement('input');
+        csrfInput.type = 'hidden';
+        csrfInput.name = 'csrfmiddlewaretoken';
+        csrfInput.value = '{{ csrf_token }}';
+        document.body.appendChild(csrfInput);
+    }
+});
+
+{% endblock %}

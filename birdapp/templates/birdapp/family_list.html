@@ -1,0 +1,280 @@
+{% extends 'birdapp/base.html' %}
+
+{% block title %}Family Management - Bird Tracker{% endblock %}
+
+{% block extra_css %}
+/* Family List Specific Styles */
+.family-item {
+    transition: all 0.3s ease;
+    border-left: 4px solid transparent;
+}
+
+.family-item:hover {
+    background-color: #f8f9fa;
+    border-left-color: var(--primary-green);
+    transform: translateX(5px);
+}
+
+.family-name {
+    font-size: 1.2em;
+    font-weight: 600;
+    color: var(--primary-green);
+    margin-bottom: 4px;
+}
+
+.subfamily-name {
+    color: #666;
+    font-size: 1em;
+    font-style: italic;
+}
+
+.bird-count {
+    background: #e8f5e8;
+    color: var(--primary-green);
+    font-size: 0.85em;
+    font-weight: 500;
+}
+
+.bird-count.has-birds {
+    background: #fff3cd;
+    color: #856404;
+}
+
+.family-actions {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+}
+
+.btn-action {
+    padding: 0.25rem 0.5rem;
+    font-size: 0.875rem;
+}
+
+.empty-families {
+    text-align: center;
+    color: #999;
+    padding: 3rem 1rem;
+}
+
+.empty-families .icon {
+    font-size: 4rem;
+    margin-bottom: 1rem;
+    color: #ddd;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .family-actions {
+        flex-direction: column;
+        gap: 0.25rem;
+    }
+    
+    .btn-action {
+        font-size: 0.75rem;
+        padding: 0.2rem 0.4rem;
+        width: 100%;
+    }
+}
+{% endblock %}
+
+{% block content %}
+<div class="pt-4 pb-2 mb-4">
+    <div class="d-flex justify-content-between align-items-start flex-wrap">
+        <div>
+            <h1 class="page-title display-4 mb-2">Family Management</h1>
+            <p class="text-muted fs-5">Manage bird families and taxonomic groups</p>
+        </div>
+        <div class="d-flex gap-2">
+            <a href="{% url 'bird_list' %}" class="btn btn-outline-success">
+                <i class="bi bi-arrow-left me-2"></i>Back to Birds
+            </a>
+            <a href="{% url 'family_add' %}" class="btn btn-success">
+                <i class="bi bi-plus-circle me-2"></i>Add New Family
+            </a>
+        </div>
+    </div>
+</div>
+
+<!-- Family List -->
+<div class="card">
+    <div class="card-header bg-white border-bottom-2">
+        <div class="d-flex align-items-center">
+            <i class="bi bi-diagram-3 section-icon fs-4 me-3"></i>
+            <h2 class="section-title h3 mb-0">
+                Bird Families ({{ families|length }} total)
+            </h2>
+        </div>
+    </div>
+    
+    <div class="card-body p-0">
+        {% if families %}
+            <div class="list-group list-group-flush">
+                {% for family in families %}
+                    <div class="list-group-item family-item border-0 px-4 py-3">
+                        <div class="d-flex justify-content-between align-items-start">
+                            <div class="flex-grow-1">
+                                <div class="family-name">{{ family.family_name }}</div>
+                                {% if family.subfamily_name %}
+                                    <div class="subfamily-name">{{ family.subfamily_name }}</div>
+                                {% endif %}
+                                
+                                <div class="mt-2">
+                                    <div class="d-flex align-items-center">
+                                        <i class="bi bi-feather me-2 text-muted"></i>
+                                        {% if family.bird_count > 0 %}
+                                            <span class="badge bird-count has-birds rounded-pill">
+                                                {{ family.bird_count }} bird{{ family.bird_count|pluralize }}
+                                            </span>
+                                        {% else %}
+                                            <span class="text-muted">No birds assigned</span>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="family-actions ms-3">
+                                <a href="{% url 'family_edit' family_id=family.id %}" 
+                                   class="btn btn-outline-secondary btn-action" 
+                                   title="Edit Family">
+                                    <i class="bi bi-pencil"></i>
+                                    <span class="d-none d-sm-inline ms-1">Edit</span>
+                                </a>
+                                <button type="button" 
+                                        class="btn btn-outline-danger btn-action" 
+                                        onclick="deleteFamily({{ family.id }}, '{{ family.family_name|escapejs }}')"
+                                        title="Delete Family"
+                                        {% if family.bird_count > 0 %}disabled{% endif %}>
+                                    <i class="bi bi-trash"></i>
+                                    <span class="d-none d-sm-inline ms-1">Delete</span>
+                                </button>
+                                {% if family.bird_count > 0 %}
+                                    <a href="{% url 'bird_list' %}?family={{ family.id }}" 
+                                       class="btn btn-outline-primary btn-action" 
+                                       title="View Birds">
+                                        <i class="bi bi-eye"></i>
+                                        <span class="d-none d-sm-inline ms-1">View Birds</span>
+                                    </a>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+        {% else %}
+            <div class="empty-families">
+                <div class="icon">
+                    <i class="bi bi-diagram-3"></i>
+                </div>
+                <h3 class="h4 mb-3">No families defined</h3>
+                <p class="mb-4">Start organizing your birds by creating taxonomic families!</p>
+                <a href="{% url 'family_add' %}" class="btn btn-success btn-lg">
+                    <i class="bi bi-plus-circle me-2"></i>Add Your First Family
+                </a>
+            </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Help Section -->
+<div class="card mt-4">
+    <div class="card-header bg-light">
+        <div class="d-flex align-items-center">
+            <i class="bi bi-info-circle section-icon fs-4 me-3"></i>
+            <h3 class="section-title h4 mb-0">About Bird Families</h3>
+        </div>
+    </div>
+    <div class="card-body">
+        <div class="row">
+            <div class="col-md-6">
+                <h5 class="text-success">What are Bird Families?</h5>
+                <p class="text-muted">
+                    Bird families are taxonomic groups that organize related species. For example, 
+                    all ducks, geese, and swans belong to the family <em>Anatidae</em>, while 
+                    all hawks, eagles, and kites belong to <em>Accipitridae</em>.
+                </p>
+            </div>
+            <div class="col-md-6">
+                <h5 class="text-success">Why Use Families?</h5>
+                <p class="text-muted">
+                    Organizing birds by family helps you:
+                    <br>• Better understand bird relationships
+                    <br>• Filter and search your bird database
+                    <br>• Learn taxonomic classification
+                    <br>• Organize your sightings scientifically
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function deleteFamily(familyId, familyName) {
+    if (!confirm(`Are you sure you want to delete the family "${familyName}"?`)) {
+        return;
+    }
+    
+    fetch(`/families/${familyId}/delete/`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value || '{{ csrf_token }}'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showMessage(data.message, 'success');
+            // Remove the family row from the page
+            document.querySelector(`[onclick="deleteFamily(${familyId}, '${familyName.replace(/'/g, "\\'")}')"]`)
+                    .closest('.family-item').remove();
+            
+            // Update count if no families left
+            const familyItems = document.querySelectorAll('.family-item');
+            if (familyItems.length === 0) {
+                location.reload(); // Reload to show empty state
+            }
+        } else {
+            showMessage(data.message, 'danger');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showMessage('An error occurred while deleting the family.', 'danger');
+    });
+}
+
+function showMessage(message, type) {
+    // Create alert element
+    const alertDiv = document.createElement('div');
+    alertDiv.className = `alert alert-${type} alert-dismissible fade show`;
+    alertDiv.innerHTML = `
+        ${message}
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    `;
+    
+    // Insert at top of main content
+    const mainContent = document.querySelector('main');
+    mainContent.insertBefore(alertDiv, mainContent.firstChild);
+    
+    // Auto-dismiss after 5 seconds
+    setTimeout(() => {
+        alertDiv.remove();
+    }, 5000);
+}
+
+// Add CSRF token to page if not present
+document.addEventListener('DOMContentLoaded', function() {
+    if (!document.querySelector('[name=csrfmiddlewaretoken]')) {
+        const csrfInput = document.createElement('input');
+        csrfInput.type = 'hidden';
+        csrfInput.name = 'csrfmiddlewaretoken';
+        csrfInput.value = '{{ csrf_token }}';
+        document.body.appendChild(csrfInput);
+    }
+});
+</script>
+{% endblock %}

@@ -1,0 +1,129 @@
+{% extends 'birdapp/base.html' %}
+{% load static %}
+
+{% block title %}{{ title }} - Bird Tracker{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <!-- Breadcrumb Navigation -->
+    <nav aria-label="breadcrumb" class="mb-3">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{% url 'location_list' %}">Locations</a></li>
+            {% if location %}
+                <li class="breadcrumb-item"><a href="{% url 'location_detail' location.id %}">{{ location.location_name }}</a></li>
+                <li class="breadcrumb-item active" aria-current="page">Edit</li>
+            {% else %}
+                <li class="breadcrumb-item active" aria-current="page">Add New</li>
+            {% endif %}
+        </ol>
+    </nav>
+
+    <!-- Page Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="page-title mb-0">
+            <i class="bi bi-geo-alt-fill me-2"></i>{{ title }}
+        </h1>
+    </div>
+
+    <div class="row">
+        <div class="col-lg-8 mx-auto">
+            <div class="card shadow-sm">
+                <div class="card-header bg-white">
+                    <h5 class="mb-0">Location Information</h5>
+                </div>
+                <div class="card-body">
+                    <form method="post" novalidate>
+                        {% csrf_token %}
+                        
+                        <!-- Display non-field errors -->
+                        {% if form.non_field_errors %}
+                        <div class="alert alert-danger" role="alert">
+                            {{ form.non_field_errors }}
+                        </div>
+                        {% endif %}
+
+                        <!-- Location Name -->
+                        <div class="mb-3">
+                            <label for="{{ form.location_name.id_for_label }}" class="form-label">
+                                {{ form.location_name.label }}
+                                <span class="text-danger">*</span>
+                            </label>
+                            {{ form.location_name }}
+                            {% if form.location_name.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {{ form.location_name.errors }}
+                                </div>
+                            {% endif %}
+                            {% if form.location_name.help_text %}
+                                <div class="form-text">{{ form.location_name.help_text }}</div>
+                            {% endif %}
+                        </div>
+
+                        <!-- Parent Location -->
+                        <div class="mb-3">
+                            <label for="{{ form.parent_location.id_for_label }}" class="form-label">
+                                {{ form.parent_location.label }}
+                            </label>
+                            {{ form.parent_location }}
+                            {% if form.parent_location.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {{ form.parent_location.errors }}
+                                </div>
+                            {% endif %}
+                            {% if form.parent_location.help_text %}
+                                <div class="form-text">{{ form.parent_location.help_text }}</div>
+                            {% endif %}
+                        </div>
+
+                        <!-- Information Alert -->
+                        <div class="alert alert-info" role="alert">
+                            <i class="bi bi-info-circle me-2"></i>
+                            <strong>Hierarchical Locations:</strong> Use parent locations to create a hierarchy 
+                            (e.g., Country → State/Province → City → Park). This helps organize your sightings 
+                            geographically and allows viewing all sightings within a region.
+                        </div>
+
+                        <!-- Form Actions -->
+                        <div class="d-flex justify-content-between align-items-center mt-4">
+                            <a href="{{ cancel_url }}" class="btn btn-secondary">
+                                <i class="bi bi-x-circle me-2"></i>Cancel
+                            </a>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-check-circle me-2"></i>{{ submit_text }}
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Additional Information for Edit Mode -->
+            {% if location %}
+            <div class="card shadow-sm mt-4">
+                <div class="card-header bg-white">
+                    <h5 class="mb-0"><i class="bi bi-info-circle me-2"></i>Additional Information</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <p><strong>Full Path:</strong><br>
+                            <span class="text-muted">{{ location.get_full_path_string }}</span></p>
+                        </div>
+                        <div class="col-md-6">
+                            <p><strong>Total Sightings:</strong><br>
+                            <span class="text-muted">{{ location.sighting_set.count }}</span></p>
+                        </div>
+                    </div>
+                    {% if location.sighting_set.count > 0 %}
+                    <div class="alert alert-warning mt-3 mb-0">
+                        <i class="bi bi-exclamation-triangle me-2"></i>
+                        This location has {{ location.sighting_set.count }} sighting(s). 
+                        Be careful when changing the parent location as it may affect the geographical hierarchy.
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,460 @@
+{% extends 'birdapp/base.html' %}
+
+{% block title %}{{ title }} - Bird Tracker{% endblock %}
+
+{% block extra_css %}
+/* Form Specific Styles */
+.form-container {
+    max-width: 800px;
+    margin: 0 auto;
+}
+
+.form-section {
+    background: white;
+    border-radius: 0.5rem;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.form-group {
+    margin-bottom: 1.5rem;
+}
+
+.form-label {
+    font-weight: 500;
+    color: var(--primary-green);
+    margin-bottom: 0.5rem;
+}
+
+.form-control:focus,
+.form-select:focus {
+    border-color: var(--light-green);
+    box-shadow: 0 0 0 0.2rem rgba(74, 159, 77, 0.25);
+}
+
+.form-text {
+    color: #6c757d;
+    font-size: 0.875rem;
+}
+
+.required-field {
+    position: relative;
+}
+
+.required-field .form-label::after {
+    content: " *";
+    color: #dc3545;
+}
+
+.btn-cancel {
+    background-color: #6c757d;
+    border-color: #6c757d;
+    color: white;
+}
+
+.btn-cancel:hover {
+    background-color: #5c636a;
+    border-color: #565e64;
+    color: white;
+}
+
+.alert {
+    border-radius: 0.5rem;
+}
+
+.field-errors {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.field-errors li {
+    color: #dc3545;
+    font-size: 0.875rem;
+    margin-top: 0.25rem;
+}
+
+.preview-section {
+    background: #f8f9fa;
+    border: 2px dashed #dee2e6;
+    border-radius: 0.5rem;
+    padding: 1.5rem;
+    text-align: center;
+}
+
+.preview-bird-name {
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: var(--primary-green);
+    margin-bottom: 0.5rem;
+}
+
+.preview-latin-name {
+    font-style: italic;
+    color: #666;
+    font-size: 1.1rem;
+    margin-bottom: 0.5rem;
+}
+
+.preview-details {
+    color: #888;
+    font-size: 0.9rem;
+}
+{% endblock %}
+
+{% block content %}
+<div class="pt-4 pb-2 mb-4">
+    <div class="d-flex justify-content-between align-items-center">
+        <div>
+            <h1 class="page-title display-4 mb-2">{{ title }}</h1>
+            <p class="text-muted fs-5">
+                {% if bird %}
+                    Update the details for this bird species
+                {% else %}
+                    Add a new bird species to your database
+                {% endif %}
+            </p>
+        </div>
+        <div>
+            <a href="{{ cancel_url }}" class="btn btn-outline-secondary">
+                <i class="bi bi-arrow-left me-2"></i>Back
+            </a>
+        </div>
+    </div>
+</div>
+
+<div class="form-container">
+    <!-- Form Section -->
+    <div class="card form-section">
+        <div class="card-header bg-white border-bottom-2">
+            <div class="d-flex align-items-center">
+                <i class="bi bi-feather section-icon fs-4 me-3"></i>
+                <h2 class="section-title h3 mb-0">Bird Information</h2>
+            </div>
+        </div>
+        
+        <div class="card-body">
+            <form method="post" novalidate>
+                {% csrf_token %}
+                
+                <!-- English Name (Required) -->
+                <div class="form-group required-field">
+                    <label for="{{ form.english_name.id_for_label }}" class="form-label">
+                        {{ form.english_name.label }}
+                    </label>
+                    {{ form.english_name }}
+                    {% if form.english_name.help_text %}
+                        <div class="form-text">{{ form.english_name.help_text }}</div>
+                    {% endif %}
+                    {% if form.english_name.errors %}
+                        <ul class="field-errors">
+                            {% for error in form.english_name.errors %}
+                                <li>{{ error }}</li>
+                            {% endfor %}
+                        </ul>
+                    {% endif %}
+                </div>
+                
+                <!-- Scientific/Latin Name -->
+                <div class="form-group">
+                    <label for="{{ form.latin_name.id_for_label }}" class="form-label">
+                        {{ form.latin_name.label }}
+                    </label>
+                    {{ form.latin_name }}
+                    {% if form.latin_name.help_text %}
+                        <div class="form-text">{{ form.latin_name.help_text }}</div>
+                    {% endif %}
+                    {% if form.latin_name.errors %}
+                        <ul class="field-errors">
+                            {% for error in form.latin_name.errors %}
+                                <li>{{ error }}</li>
+                            {% endfor %}
+                        </ul>
+                    {% endif %}
+                </div>
+                
+                <!-- French Name -->
+                <div class="form-group">
+                    <label for="{{ form.french_name.id_for_label }}" class="form-label">
+                        {{ form.french_name.label }}
+                    </label>
+                    {{ form.french_name }}
+                    {% if form.french_name.help_text %}
+                        <div class="form-text">{{ form.french_name.help_text }}</div>
+                    {% endif %}
+                    {% if form.french_name.errors %}
+                        <ul class="field-errors">
+                            {% for error in form.french_name.errors %}
+                                <li>{{ error }}</li>
+                            {% endfor %}
+                        </ul>
+                    {% endif %}
+                </div>
+                
+                <div class="row">
+                    <!-- Family -->
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label for="{{ form.family.id_for_label }}" class="form-label">
+                                {{ form.family.label }}
+                            </label>
+                            {{ form.family }}
+                            {% if form.family.help_text %}
+                                <div class="form-text">{{ form.family.help_text }}</div>
+                            {% endif %}
+                            {% if form.family.errors %}
+                                <ul class="field-errors">
+                                    {% for error in form.family.errors %}
+                                        <li>{{ error }}</li>
+                                    {% endfor %}
+                                </ul>
+                            {% endif %}
+                            <div class="form-text">
+                                <a href="{% url 'family_add' %}" target="_blank" class="text-success">
+                                    <i class="bi bi-plus-circle me-1"></i>Add new family
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Species Status -->
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label for="{{ form.species_status.id_for_label }}" class="form-label">
+                                {{ form.species_status.label }}
+                            </label>
+                            {{ form.species_status }}
+                            {% if form.species_status.help_text %}
+                                <div class="form-text">{{ form.species_status.help_text }}</div>
+                            {% endif %}
+                            {% if form.species_status.errors %}
+                                <ul class="field-errors">
+                                    {% for error in form.species_status.errors %}
+                                        <li>{{ error }}</li>
+                                    {% endfor %}
+                                </ul>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Form Actions -->
+                <div class="d-flex justify-content-between align-items-center mt-4 pt-3 border-top">
+                    <div class="text-muted small">
+                        <i class="bi bi-info-circle me-1"></i>
+                        Fields marked with * are required
+                    </div>
+                    
+                    <div class="d-flex gap-2">
+                        <a href="{{ cancel_url }}" class="btn btn-cancel">
+                            <i class="bi bi-x-circle me-2"></i>Cancel
+                        </a>
+                        <button type="submit" class="btn btn-success">
+                            <i class="bi bi-check-circle me-2"></i>{{ submit_text }}
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    <!-- Live Preview Section -->
+    <div class="card mt-4">
+        <div class="card-header bg-white">
+            <div class="d-flex align-items-center">
+                <i class="bi bi-eye section-icon fs-4 me-3"></i>
+                <h3 class="section-title h4 mb-0">Live Preview</h3>
+            </div>
+        </div>
+        <div class="card-body">
+            <div class="preview-section" id="bird-preview">
+                <div class="preview-bird-name" id="preview-english-name">
+                    {% if form.english_name.value %}{{ form.english_name.value }}{% else %}Bird Name{% endif %}
+                </div>
+                <div class="preview-latin-name" id="preview-latin-name">
+                    {% if form.latin_name.value %}{{ form.latin_name.value }}{% endif %}
+                </div>
+                
+                <!-- Always include preview-details div, even if empty -->
+                <div class="preview-details" id="preview-details">
+                    {% if form.family.value and form.family.value.family_name %}
+                        Family: {{ form.family.value.family_name }}
+                    {% elif form.family.value %}
+                        {% for family in form.family.field.queryset %}
+                            {% if family.id == form.family.value %}
+                                Family: {{ family.family_name }}
+                            {% endif %}
+                        {% endfor %}
+                    {% endif %}
+                    {% if form.species_status.value %}
+                        {% if form.family.value %} • {% endif %}Status: {{ form.species_status.value }}
+                    {% endif %}
+                </div>
+                
+                {% if form.french_name.value %}
+                    <div class="mt-1 text-muted" id="preview-french">French: {{ form.french_name.value }}</div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Get form fields with error handling
+    const englishNameField = document.getElementById('{{ form.english_name.id_for_label }}');
+    const latinNameField = document.getElementById('{{ form.latin_name.id_for_label }}');
+    const frenchNameField = document.getElementById('{{ form.french_name.id_for_label }}');
+    const familyField = document.getElementById('{{ form.family.id_for_label }}');
+    const statusField = document.getElementById('{{ form.species_status.id_for_label }}');
+    
+    // Debug: Check if all fields are found
+    console.log('Form fields found:', {
+        english: !!englishNameField,
+        latin: !!latinNameField,
+        french: !!frenchNameField,
+        family: !!familyField,
+        status: !!statusField
+    });
+    
+    // Get preview elements
+    const previewEnglish = document.getElementById('preview-english-name');
+    const previewLatin = document.getElementById('preview-latin-name');
+    let previewDetails = document.getElementById('preview-details'); // This might be null initially
+    let previewFrench = document.getElementById('preview-french');
+    
+    // Update preview function
+    function updatePreview() {
+        console.log('Updating preview...'); // Debug
+        
+        // Update English name
+        if (englishNameField) {
+            const englishValue = englishNameField.value.trim();
+            if (previewEnglish) {
+                previewEnglish.textContent = englishValue || 'Bird Name';
+            }
+        }
+        
+        // Update Latin name
+        if (latinNameField && previewLatin) {
+            const latinValue = latinNameField.value.trim();
+            previewLatin.textContent = latinValue;
+            previewLatin.style.display = latinValue ? 'block' : 'none';
+        }
+        
+        // Update French name
+        if (frenchNameField) {
+            const frenchValue = frenchNameField.value.trim();
+            if (frenchValue) {
+                if (!previewFrench) {
+                    previewFrench = document.createElement('div');
+                    previewFrench.id = 'preview-french';
+                    previewFrench.className = 'mt-1 text-muted';
+                    document.getElementById('bird-preview').appendChild(previewFrench);
+                }
+                previewFrench.textContent = `French: ${frenchValue}`;
+                previewFrench.style.display = 'block';
+            } else if (previewFrench) {
+                previewFrench.style.display = 'none';
+            }
+        }
+        
+        // Update family and status
+        let detailsText = '';
+        
+        // Handle family
+        if (familyField && familyField.value) {
+            const selectedOption = familyField.options[familyField.selectedIndex];
+            if (selectedOption && selectedOption.text && selectedOption.text !== 'Select a family (optional)') {
+                detailsText += `Family: ${selectedOption.text}`;
+            }
+        }
+        
+        // Handle status
+        if (statusField) {
+            const statusValue = statusField.value.trim();
+            console.log('Status value:', `"${statusValue}"`); // Debug with quotes to see spaces
+            console.log('Status value length:', statusValue.length); // Debug length
+            if (statusValue) {
+                if (detailsText) detailsText += ' • ';
+                detailsText += `Status: ${statusValue}`;
+                console.log('Status added to details'); // Debug
+            } else {
+                console.log('Status value is empty or falsy'); // Debug
+            }
+        } else {
+            console.log('Status field not found'); // Debug
+        }
+        
+        console.log('Final details text:', `"${detailsText}"`); // Debug final result
+        
+        // Update details display
+        let previewDetailsElement = document.getElementById('preview-details');
+        if (!previewDetailsElement) {
+            // Create the preview details element if it doesn't exist
+            console.log('Creating preview details element'); // Debug
+            previewDetailsElement = document.createElement('div');
+            previewDetailsElement.id = 'preview-details';
+            previewDetailsElement.className = 'preview-details';
+            document.getElementById('bird-preview').appendChild(previewDetailsElement);
+        }
+        
+        if (previewDetailsElement) {
+            console.log('Updating preview details element'); // Debug
+            previewDetailsElement.textContent = detailsText;
+            previewDetailsElement.style.display = detailsText ? 'block' : 'none';
+            
+                       
+            console.log('Preview details updated, display:', previewDetailsElement.style.display); // Debug
+            console.log('Preview details content:', `"${previewDetailsElement.textContent}"`); // Debug
+            console.log('Preview details innerHTML:', previewDetailsElement.innerHTML); // Debug
+        } else {
+            console.log('Still could not create/find preview details element'); // Debug
+        }
+    }
+    
+    // Add event listeners with error checking
+    if (englishNameField) {
+        englishNameField.addEventListener('input', updatePreview);
+        englishNameField.addEventListener('keyup', updatePreview); // Additional listener
+    }
+    
+    if (latinNameField) {
+        latinNameField.addEventListener('input', updatePreview);
+        latinNameField.addEventListener('keyup', updatePreview);
+    }
+    
+    if (frenchNameField) {
+        frenchNameField.addEventListener('input', updatePreview);
+        frenchNameField.addEventListener('keyup', updatePreview);
+    }
+    
+    if (familyField) {
+        familyField.addEventListener('change', updatePreview);
+    }
+    
+    if (statusField) {
+        // Multiple event listeners for status field to catch all changes
+        statusField.addEventListener('input', updatePreview);
+        statusField.addEventListener('keyup', updatePreview);
+        statusField.addEventListener('keydown', function() {
+            // Delay slightly to catch the character after it's entered
+            setTimeout(updatePreview, 10);
+        });
+        statusField.addEventListener('paste', function() {
+            // Handle paste events
+            setTimeout(updatePreview, 10);
+        });
+        console.log('Status field listeners attached'); // Debug
+    }
+    
+    // Initial preview update
+    setTimeout(function() {
+        updatePreview();
+        console.log('Initial preview updated'); // Debug
+    }, 100);
+});
+</script>
+{% endblock %}

@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ bird.english_name }} - Bird Details</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f8f9fa;
+            line-height: 1.6;
+        }
+        .bird-card {
+            background: white;
+            border-radius: 10px;
+            padding: 30px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            margin-bottom: 20px;
+        }
+        .bird-header {
+            border-bottom: 3px solid #2c5f2d;
+            padding-bottom: 15px;
+            margin-bottom: 25px;
+        }
+        .english-name {
+            font-size: 2.5em;
+            color: #2c5f2d;
+            margin: 0;
+            font-weight: 300;
+        }
+        .latin-name {
+            font-size: 1.3em;
+            color: #666;
+            font-style: italic;
+            margin: 5px 0 0 0;
+        }
+        .bird-details {
+            display: grid;
+            gap: 15px;
+        }
+        .detail-row {
+            display: flex;
+            align-items: center;
+            padding: 10px 0;
+            border-bottom: 1px solid #eee;
+        }
+        .detail-row:last-child {
+            border-bottom: none;
+        }
+        .detail-label {
+            font-weight: 600;
+            color: #333;
+            min-width: 140px;
+            margin-right: 20px;
+        }
+        .detail-value {
+            color: #555;
+            flex: 1;
+        }
+        .family-link {
+            color: #2c5f2d;
+            text-decoration: none;
+            font-weight: 500;
+        }
+        .family-link:hover {
+            text-decoration: underline;
+        }
+        .not-available {
+            color: #999;
+            font-style: italic;
+        }
+        .back-link {
+            display: inline-block;
+            margin-top: 20px;
+            color: #2c5f2d;
+            text-decoration: none;
+            padding: 10px 20px;
+            border: 2px solid #2c5f2d;
+            border-radius: 5px;
+            transition: all 0.3s ease;
+        }
+        .back-link:hover {
+            background-color: #2c5f2d;
+            color: white;
+        }
+        .status-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.85em;
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .status-common {
+            background-color: #d4edda;
+            color: #155724;
+        }
+        .status-uncommon {
+            background-color: #fff3cd;
+            color: #856404;
+        }
+        .status-rare {
+            background-color: #f8d7da;
+            color: #721c24;
+        }
+        .status-default {
+            background-color: #e2e3e5;
+            color: #495057;
+        }
+    </style>
+</head>
+<body>
+    <div class="bird-card">
+        <div class="bird-header">
+            <h1 class="english-name">{{ bird.english_name }}</h1>
+            {% if bird.latin_name %}
+                <p class="latin-name">{{ bird.latin_name }}</p>
+            {% endif %}
+        </div>
+        
+        <div class="bird-details">
+            {% if bird.french_name %}
+            <div class="detail-row">
+                <div class="detail-label">French Name:</div>
+                <div class="detail-value">{{ bird.french_name }}</div>
+            </div>
+            {% endif %}
+            
+            <div class="detail-row">
+                <div class="detail-label">Species Status:</div>
+                <div class="detail-value">
+                    {% if bird.species_status %}
+                        <span class="status-badge 
+                            {% if 'common' in bird.species_status|lower %}status-common
+                            {% elif 'uncommon' in bird.species_status|lower %}status-uncommon
+                            {% elif 'rare' in bird.species_status|lower %}status-rare
+                            {% else %}status-default{% endif %}">
+                            {{ bird.species_status }}
+                        </span>
+                    {% else %}
+                        <span class="not-available">Not specified</span>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <div class="detail-row">
+                <div class="detail-label">Family:</div>
+                <div class="detail-value">
+                    {% if bird.family %}
+                        <!-- Assuming you might want to link to family detail page -->
+                        <a href="#" class="family-link">{{ bird.family }}</a>
+                    {% else %}
+                        <span class="not-available">Not specified</span>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <div class="detail-row">
+                <div class="detail-label">Bird ID:</div>
+                <div class="detail-value">#{{ bird.pk }}</div>
+            </div>
+        </div>
+        
+        <!-- Navigation 
+        
+        -->
+    </div>
+</body>
+</html>

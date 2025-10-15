@@ -1,0 +1,370 @@
+{% extends 'birdapp/base.html' %}
+{% load static %}
+
+{% block title %}Locations - Bird Tracker{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <!-- Page Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="page-title mb-0">
+            <i class="bi bi-geo-alt-fill me-2"></i>Locations
+        </h1>
+        <a href="{% url 'location_add' %}" class="btn btn-success">
+            <i class="bi bi-plus-circle me-2"></i>Add Location
+        </a>
+    </div>
+
+    <!-- Statistics Cards -->
+    <div class="row mb-4">
+        <div class="col-md-4">
+            <div class="card stat-card shadow-sm">
+                <div class="card-body">
+                    <div class="stat-number">{{ total_locations }}</div>
+                    <div class="stat-label">Total Locations</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Search and Filter Form -->
+    <div class="card shadow-sm mb-4">
+        <div class="card-header bg-white">
+            <h5 class="mb-0"><i class="bi bi-funnel me-2"></i>Search & Filter</h5>
+        </div>
+        <div class="card-body">
+            <form method="get" action="{% url 'location_list' %}" class="row g-3">
+                <div class="col-md-4">
+                    {{ form.search }}
+                </div>
+                <div class="col-md-3">
+                    {{ form.parent_location }}
+                </div>
+                <div class="col-md-3">
+                    <div class="form-check mt-2">
+                        {{ form.show_top_level_only }}
+                        <label class="form-check-label" for="{{ form.show_top_level_only.id_for_label }}">
+                            {{ form.show_top_level_only.label }}
+                        </label>
+                    </div>
+                </div>
+                <div class="col-md-2">
+                    <button type="submit" class="btn btn-primary w-100">
+                        <i class="bi bi-search me-2"></i>Search
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Bulk Actions -->
+    <div id="bulk-actions" class="alert alert-info mb-3" style="display: none;">
+        <div class="d-flex justify-content-between align-items-center">
+            <span><strong id="selected-count">0</strong> location(s) selected</span>
+            <div>
+                <button type="button" class="btn btn-sm btn-danger" onclick="bulkDelete()">
+                    <i class="bi bi-trash me-1"></i>Delete Selected
+                </button>
+                <button type="button" class="btn btn-sm btn-secondary" onclick="clearSelection()">
+                    Clear Selection
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Locations Table -->
+    <div class="card shadow-sm">
+        <div class="card-header bg-white">
+            <h5 class="mb-0">Locations List</h5>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th style="width: 40px;">
+                                <input type="checkbox" id="select-all" class="form-check-input">
+                            </th>
+                            <th>Location</th>
+                            <th>Full Path</th>
+                            <th>Parent Location</th>
+                            <th>Child Locations</th>
+                            <th>Sightings</th>
+                            <th style="width: 150px;">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for location in locations %}
+                        <tr>
+                            <td>
+                                <input type="checkbox" class="form-check-input location-checkbox" 
+                                       value="{{ location.id }}" data-name="{{ location.location_name }}">
+                            </td>
+                            <td>
+                                <a href="{% url 'location_detail' location.id %}" class="text-decoration-none">
+                                    <strong>{{ location.location_name }}</strong>
+                                </a>
+                            </td>
+                            <td>
+                                <small class="text-muted">{{ location.get_full_path_string }}</small>
+                            </td>
+                            <td>
+                                {% if location.parent_location %}
+                                    <a href="{% url 'location_detail' location.parent_location.id %}" 
+                                       class="text-decoration-none">
+                                        {{ location.parent_location.location_name }}
+                                    </a>
+                                {% else %}
+                                    <span class="text-muted">—</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if location.child_count > 0 %}
+                                    <span class="badge bg-info">{{ location.child_count }}</span>
+                                {% else %}
+                                    <span class="text-muted">0</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if location.sighting_count > 0 %}
+                                    <a href="{% url 'location_list' %}?location={{ location.id }}" 
+                                       class="badge bg-success text-decoration-none">
+                                        {{ location.sighting_count }}
+                                    </a>
+                                {% else %}
+                                    <span class="text-muted">0</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <div class="btn-group btn-group-sm" role="group">
+                                    <a href="{% url 'location_detail' location.id %}" 
+                                       class="btn btn-outline-primary" title="View">
+                                        <i class="bi bi-eye"></i>
+                                    </a>
+                                    <a href="{% url 'location_edit' location.id %}" 
+                                       class="btn btn-outline-secondary" title="Edit">
+                                        <i class="bi bi-pencil"></i>
+                                    </a>
+                                    <button type="button" class="btn btn-outline-danger" 
+                                            onclick="deleteLocation({{ location.id }}, '{{ location.location_name|escapejs }}')"
+                                            title="Delete">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="7" class="text-center py-4 text-muted">
+                                <i class="bi bi-inbox fs-3 d-block mb-2"></i>
+                                No locations found. <a href="{% url 'location_add' %}">Add your first location</a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Pagination -->
+    {% if is_paginated %}
+    <nav aria-label="Page navigation" class="mt-4">
+        <ul class="pagination justify-content-center">
+            {% if page_obj.has_previous %}
+            <li class="page-item">
+                <a class="page-link" href="?page=1{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}">First</a>
+            </li>
+            <li class="page-item">
+                <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}">Previous</a>
+            </li>
+            {% endif %}
+
+            <li class="page-item active">
+                <span class="page-link">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+            </li>
+
+            {% if page_obj.has_next %}
+            <li class="page-item">
+                <a class="page-link" href="?page={{ page_obj.next_page_number }}{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}">Next</a>
+            </li>
+            <li class="page-item">
+                <a class="page-link" href="?page={{ page_obj.paginator.num_pages }}{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}">Last</a>
+            </li>
+            {% endif %}
+        </ul>
+    </nav>
+    {% endif %}
+</div>
+
+<!-- Delete Confirmation Modal -->
+<div class="modal fade" id="deleteModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Confirm Deletion</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>Are you sure you want to delete the location "<strong id="delete-location-name"></strong>"?</p>
+                <p class="text-danger mb-0"><small>This action cannot be undone.</small></p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-danger" id="confirm-delete-btn">Delete</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+let deleteLocationId = null;
+let deleteModal = null;
+
+// Initialize modal when DOM is ready
+document.addEventListener('DOMContentLoaded', function() {
+    deleteModal = new bootstrap.Modal(document.getElementById('deleteModal'));
+});
+
+// Delete single location
+function deleteLocation(locationId, locationName) {
+    deleteLocationId = locationId;
+    document.getElementById('delete-location-name').textContent = locationName;
+    if (deleteModal) {
+        deleteModal.show();
+    }
+}
+
+document.getElementById('confirm-delete-btn').addEventListener('click', function() {
+    if (!deleteLocationId) return;
+
+    // Use the correct URL from Django
+    const deleteUrl = `{% url 'location_delete' 0 %}`.replace('0', deleteLocationId);
+
+    fetch(deleteUrl, {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': getCookie('csrftoken'),
+            'Content-Type': 'application/json',
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (deleteModal) {
+            deleteModal.hide();
+        }
+        if (data.success) {
+            showMessage(data.message, 'success');
+            setTimeout(() => location.reload(), 1000);
+        } else {
+            showMessage(data.message, 'danger');
+        }
+    })
+    .catch(error => {
+        if (deleteModal) {
+            deleteModal.hide();
+        }
+        showMessage('An error occurred while deleting the location.', 'danger');
+    });
+});
+
+// Bulk selection
+const selectAllCheckbox = document.getElementById('select-all');
+const locationCheckboxes = document.querySelectorAll('.location-checkbox');
+const bulkActionsDiv = document.getElementById('bulk-actions');
+const selectedCountSpan = document.getElementById('selected-count');
+
+selectAllCheckbox.addEventListener('change', function() {
+    locationCheckboxes.forEach(cb => cb.checked = this.checked);
+    updateBulkActions();
+});
+
+locationCheckboxes.forEach(cb => {
+    cb.addEventListener('change', updateBulkActions);
+});
+
+function updateBulkActions() {
+    const selectedCheckboxes = document.querySelectorAll('.location-checkbox:checked');
+    const count = selectedCheckboxes.length;
+    
+    if (count > 0) {
+        bulkActionsDiv.style.display = 'block';
+        selectedCountSpan.textContent = count;
+    } else {
+        bulkActionsDiv.style.display = 'none';
+        selectAllCheckbox.checked = false;
+    }
+}
+
+function clearSelection() {
+    locationCheckboxes.forEach(cb => cb.checked = false);
+    selectAllCheckbox.checked = false;
+    updateBulkActions();
+}
+
+function bulkDelete() {
+    const selectedCheckboxes = document.querySelectorAll('.location-checkbox:checked');
+    const selectedIds = Array.from(selectedCheckboxes).map(cb => cb.value);
+    
+    if (selectedIds.length === 0) return;
+    
+    if (!confirm(`Are you sure you want to delete ${selectedIds.length} location(s)?`)) {
+        return;
+    }
+    
+    const formData = new FormData();
+    selectedIds.forEach(id => {
+        formData.append('selected_locations', id);
+    });
+    
+    fetch('{% url "location_bulk_delete" %}', {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': getCookie('csrftoken'),
+        },
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showMessage(data.message, 'success');
+            setTimeout(() => location.reload(), 1000);
+        } else {
+            showMessage(data.message, 'danger');
+        }
+    })
+    .catch(error => {
+        showMessage('An error occurred during bulk deletion.', 'danger');
+    });
+}
+
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+
+function showMessage(message, type) {
+    const alertDiv = document.createElement('div');
+    alertDiv.className = `alert alert-${type} alert-dismissible fade show`;
+    alertDiv.innerHTML = `
+        ${message}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    `;
+    document.querySelector('.container-fluid').insertBefore(alertDiv, document.querySelector('.container-fluid').firstChild);
+    
+    setTimeout(() => {
+        alertDiv.remove();
+    }, 5000);
+}
+</script>
+{% endblock %}

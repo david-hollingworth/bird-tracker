@@ -1,0 +1,57 @@
+<nav class="col-lg-2 col-md-3 sidebar p-0">
+    <div class="sidebar-header p-4">
+        <h2 class="h4 mb-0 d-flex align-items-center">
+            <i class="bi bi-binoculars me-3 fs-3"></i>
+            Bird Tracker
+        </h2>
+    </div>
+    
+    <div class="nav flex-column p-3">
+        <a href="{% url 'home' %}" class="nav-link py-3 px-4 mb-1 {% if request.resolver_match.url_name == 'home' %}active{% endif %}">
+            <i class="bi bi-speedometer2 me-3"></i>
+            Dashboard
+        </a>
+        <a href="{% url 'add_sighting' %}" class="nav-link py-3 px-4 mb-1 {% if request.resolver_match.url_name == 'add_sighting' %}active{% endif %}">
+            <i class="bi bi-plus-circle me-3"></i>
+            Add Sighting
+        </a>
+        <a href="{% url 'lifelist' %}" class="nav-link py-3 px-4 mb-1 {% if request.resolver_match.url_name == 'lifelist' %}active{% endif %}">
+            <i class="bi bi-list-check me-3"></i>
+            Life List
+        </a>
+        <a href="{% url 'yearlist' %}" class="nav-link py-3 px-4 mb-1 {% if request.resolver_match.url_name == 'yearlist' %}active{% endif %}">
+            <i class="bi bi-list-check me-3"></i>
+            Year List
+        </a>
+        <a href="{% url 'monthlist' %}" class="nav-link py-3 px-4 mb-1 {% if request.resolver_match.url_name == 'monthlist' %}active{% endif %}">
+            <i class="bi bi-list-check me-3"></i>
+            Month List
+        </a>
+        <a href="{% url 'location_list' %}" class="nav-link py-3 px-4 mb-1 {% if request.resolver_match.url_name == 'location_list' %}active{% endif %}">
+            <i class="bi bi-list-check me-3"></i>
+            Location List
+        </a>
+        <hr class="my-4">
+        
+        <h3 class="h5 mb-0 d-flex align-items-center">
+            <i class="bi bi-binoculars me-3 fs-3"></i>
+            Data Management
+        </h3>
+        <a href="{% url 'bird_list' %}" class="nav-link py-3 px-4 mb-1 {% if request.resolver_match.url_name == 'bird_list' %}active{% endif %}">
+            <i class="bi bi-plus-circle me-3"></i>
+            Birds
+        </a>
+        <a href="{% url 'family_list' %}" class="nav-link py-3 px-4 mb-1 {% if request.resolver_match.url_name == 'family_list' %}active{% endif %}">
+            <i class="bi bi-plus-circle me-3"></i>
+            Families
+        </a>
+        <a href="{% url 'location_list' %}" class="nav-link py-3 px-4 mb-1 {% if request.resolver_match.url_name == 'location_list' %}active{% endif %}">
+            <i class="bi bi-plus-circle me-3"></i>
+            Locations
+        </a>
+         <a href="{% url 'trip_list' %}" class="nav-link py-3 px-4 mb-1 {% if request.resolver_match.url_name == 'trip_ist' %}active{% endif %}">
+            <i class="bi bi-plus-circle me-3"></i>
+            Trips
+        </a>
+    </div>
+</nav>

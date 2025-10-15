@@ -1,0 +1,176 @@
+{% extends 'birdapp/base.html' %}
+
+{% block title %}Bird Sighting Dashboard{% endblock %}
+
+{% block content %}
+<div class="pt-4 pb-2 mb-4">
+    <h1 class="page-title display-4 mb-2">Bird Sighting Dashboard</h1>
+    <p class="text-muted fs-5">Track and view your birding progress</p>
+</div>
+
+<!-- Statistics Cards -->
+<div class="row g-4 mb-5">
+    <div class="col-lg-2 col-md-6">
+        <div class="card stat-card h-100">
+            <div class="card-body">
+                <div class="stat-number mb-2">{{ life_list_count }}</div>
+                <div class="stat-label mb-1">Life List</div>
+                <div class="stat-description">Total species ever seen</div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-lg-2 col-md-6">
+        <div class="card stat-card h-100">
+            <div class="card-body">
+                <div class="stat-number mb-2">{{ this_year_count }}</div>
+                <div class="stat-label mb-1">{{ current_year }} Species</div>
+                <div class="stat-description">Species seen this year</div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-lg-2 col-md-6">
+        <div class="card stat-card h-100">
+            <div class="card-body">
+                <div class="stat-number mb-2">{{ last_year_count }}</div>
+                <div class="stat-label mb-1">{{ last_year }} Species</div>
+                <div class="stat-description">Species seen last year</div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-lg-2 col-md-6">
+        <div class="card stat-card h-100">
+            <div class="card-body">
+                <div class="stat-number mb-2">{{ this_month_count }}</div>
+                <div class="stat-label mb-1">This Month</div>
+                <div class="stat-description">Species seen this month</div>
+            </div>
+        </div>
+    </div>
+
+     <div class="col-lg-2 col-md-6">
+        <div class="card stat-card h-100">
+            <div class="card-body">
+                <div class="stat-number mb-2">{{ last_month_count }}</div>
+                <div class="stat-label mb-1">Last Month</div>
+                <div class="stat-description">Species seen last month</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Today's Sightings -->
+<div class="card">
+    <div class="card-header bg-white border-bottom-2">
+        <div class="d-flex align-items-center">
+            <i class="bi bi-calendar-day section-icon fs-4 me-3"></i>
+            <h2 class="section-title h3 mb-0">Today's Sightings</h2>
+        </div>
+    </div>
+    
+    <div class="card-body">
+        {% if todays_sightings %}
+            <div class="list-group list-group-flush">
+                {% for sighting in todays_sightings %}
+                    <div class="list-group-item border-0 px-0">
+                        <div class="sighting-bird mb-2">
+                            {{ sighting.bird.english_name }}
+                            {% if sighting.bird.latin_name %}
+                                <span class="fw-normal fst-italic text-muted">
+                                    ({{ sighting.bird.latin_name }})
+                                </span>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="row g-3 mb-2">
+                            <div class="col-md-4">
+                                <div class="sighting-detail d-flex align-items-center">
+                                    <i class="bi bi-geo-alt me-2"></i>
+                                    {{ sighting.location|default:"Unknown location" }}
+                                </div>
+                            </div>
+                            
+                            <div class="col-md-4">
+                                <div class="sighting-detail d-flex align-items-center">
+                                    <i class="bi bi-hash me-2"></i>
+                                    Count: {{ sighting.count }}
+                                    {% if sighting.heard_not_seen %}
+                                        | Heard, Not Seen
+                                    {% endif %}
+                                </div>
+                            </div>
+                            
+                            {% if sighting.trip %}
+                                <div class="col-md-4">
+                                    <div class="sighting-detail d-flex align-items-center">
+                                        <i class="bi bi-flag me-2"></i>
+                                        {{ sighting.trip }}
+                                    </div>
+                                </div>
+                            {% endif %}
+                        </div>
+                        
+                        {% if sighting.notes %}
+                            <div class="sighting-notes mt-2">
+                                <i class="bi bi-chat-quote me-1"></i>
+                                "{{ sighting.notes }}"
+                            </div>
+                        {% endif %}
+                    </div>
+                {% endfor %}
+            </div>
+        {% else %}
+            <div class="text-center py-5 no-sightings">
+                <div class="no-sightings-icon mb-3">
+                    <i class="bi bi-search"></i>
+                </div>
+                <p class="fs-5 mb-2">No sightings recorded for today yet.</p>
+                <p>
+                    <a href="{% url 'add_sighting' %}" class="btn btn-outline-success">
+                        <i class="bi bi-plus-circle me-2"></i>
+                        Add your first sighting of the day!
+                    </a>
+                </p>
+            </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+/* Sighting List Styling */
+.sighting-bird {
+    color: var(--primary-green);
+    font-weight: 600;
+    font-size: 1.2rem;
+}
+
+.sighting-detail {
+    color: #666;
+    font-size: 0.95rem;
+}
+
+.sighting-detail i {
+    color: var(--primary-green);
+    width: 16px;
+}
+
+.sighting-notes {
+    color: #555;
+    font-style: italic;
+    font-size: 0.9rem;
+}
+
+.no-sightings {
+    color: #999;
+}
+
+.no-sightings-icon {
+    font-size: 3rem;
+    color: #ddd;
+}
+</style>
+{% endblock %}

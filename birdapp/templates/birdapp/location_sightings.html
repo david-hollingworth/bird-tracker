@@ -1,0 +1,639 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sightings by Location - Bird Tracker</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f8f9fa;
+            line-height: 1.6;
+            color: #333;
+        }
+        
+        .container {
+            display: flex;
+            min-height: 100vh;
+        }
+        
+        /* Sidebar Navigation */
+        .sidebar {
+            width: 280px;
+            background: linear-gradient(135deg, #2c5f2d 0%, #1e4020 100%);
+            color: white;
+            padding: 0;
+            box-shadow: 2px 0 10px rgba(0,0,0,0.1);
+        }
+        
+        .sidebar-header {
+            padding: 25px 20px;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            background: rgba(0,0,0,0.1);
+        }
+        
+        .sidebar-header h2 {
+            font-size: 1.4em;
+            font-weight: 300;
+            margin: 0;
+            display: flex;
+            align-items: center;
+        }
+        
+        .sidebar-header .icon {
+            font-size: 1.6em;
+            margin-right: 12px;
+        }
+        
+        .nav-menu {
+            padding: 20px 0;
+        }
+        
+        .nav-item {
+            margin: 0;
+        }
+        
+        .nav-link {
+            display: block;
+            color: white;
+            text-decoration: none;
+            padding: 15px 25px;
+            transition: all 0.3s ease;
+            border-left: 4px solid transparent;
+        }
+        
+        .nav-link:hover {
+            background-color: rgba(255,255,255,0.1);
+            border-left-color: #4a9f4d;
+            transform: translateX(5px);
+        }
+        
+        .nav-link.active {
+            background-color: rgba(255,255,255,0.15);
+            border-left-color: #4a9f4d;
+        }
+        
+        .nav-link i {
+            margin-right: 12px;
+            width: 20px;
+            text-align: center;
+        }
+        
+        /* Main Content */
+        .main-content {
+            flex: 1;
+            padding: 30px;
+            overflow-y: auto;
+        }
+        
+        .page-header {
+            margin-bottom: 30px;
+        }
+        
+        .page-title {
+            font-size: 2.5em;
+            color: #2c5f2d;
+            font-weight: 300;
+            margin-bottom: 10px;
+        }
+        
+        .page-subtitle {
+            color: #666;
+            font-size: 1.1em;
+        }
+        
+        /* Location Search Section */
+        .search-section {
+            background: white;
+            border-radius: 12px;
+            padding: 30px;
+            margin-bottom: 30px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.07);
+        }
+        
+        .search-header {
+            margin-bottom: 20px;
+        }
+        
+        .search-title {
+            font-size: 1.5em;
+            color: #2c5f2d;
+            margin-bottom: 5px;
+        }
+        
+        .search-description {
+            color: #666;
+            font-size: 0.95em;
+        }
+        
+        .location-search-container {
+            position: relative;
+            max-width: 500px;
+        }
+        
+        .form-control {
+            width: 100%;
+            padding: 12px 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 6px;
+            font-size: 16px;
+            transition: border-color 0.3s ease;
+        }
+        
+        .form-control:focus {
+            outline: none;
+            border-color: #2c5f2d;
+            box-shadow: 0 0 0 3px rgba(44, 95, 45, 0.1);
+        }
+        
+        .location-results {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background: white;
+            border: 2px solid #e0e0e0;
+            border-top: none;
+            border-radius: 0 0 6px 6px;
+            max-height: 200px;
+            overflow-y: auto;
+            z-index: 1000;
+            display: none;
+        }
+        
+        .location-result-item {
+            padding: 12px 15px;
+            cursor: pointer;
+            border-bottom: 1px solid #f0f0f0;
+        }
+        
+        .location-result-item:hover {
+            background-color: #f8f9fa;
+        }
+        
+        .location-result-item:last-child {
+            border-bottom: none;
+        }
+        
+        .selected-location {
+            background-color: #e8f5e8;
+            padding: 15px;
+            border: 2px solid #2c5f2d;
+            border-radius: 6px;
+            margin-top: 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .selected-location-name {
+            font-weight: 600;
+            color: #2c5f2d;
+        }
+        
+        .clear-location {
+            background: none;
+            border: none;
+            color: #dc3545;
+            cursor: pointer;
+            font-size: 18px;
+            padding: 0;
+        }
+        
+        /* Results Section */
+        .results-section {
+            background: white;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.07);
+        }
+        
+        .results-header {
+            background: linear-gradient(135deg, #2c5f2d 0%, #1e4020 100%);
+            color: white;
+            padding: 25px 30px;
+        }
+        
+        .results-title {
+            font-size: 1.8em;
+            font-weight: 400;
+            margin: 0 0 10px 0;
+            display: flex;
+            align-items: center;
+        }
+        
+        .results-title .icon {
+            margin-right: 12px;
+        }
+        
+        .results-stats {
+            display: flex;
+            gap: 30px;
+            font-size: 0.95em;
+            opacity: 0.9;
+        }
+        
+        .stat-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .stat-number {
+            font-weight: 600;
+            font-size: 1.1em;
+        }
+        
+        /* Child Locations Info - REMOVED */
+        
+        /* Sightings List */
+        .sightings-list {
+            list-style: none;
+            margin: 0;
+            padding: 0;
+        }
+        
+        .sighting-item {
+            padding: 20px 30px;
+            border-bottom: 1px solid #f0f0f0;
+            transition: background-color 0.2s ease;
+        }
+        
+        .sighting-item:hover {
+            background-color: #f8f9fa;
+        }
+        
+        .sighting-item:last-child {
+            border-bottom: none;
+        }
+        
+        .sighting-row {
+            display: grid;
+            grid-template-columns: 250px 150px 180px 100px 1fr;
+            gap: 20px;
+            align-items: center;
+        }
+        
+        .sighting-bird {
+            font-size: 1.1em;
+            font-weight: 600;
+            color: #2c5f2d;
+        }
+        
+        .sighting-latin {
+            font-style: italic;
+            color: #666;
+            font-size: 0.9em;
+            margin-top: 2px;
+        }
+        
+        .sighting-date {
+            font-weight: 500;
+            color: #333;
+        }
+        
+        .sighting-location {
+            color: #666;
+        }
+        
+        .sighting-count {
+            color: #666;
+            text-align: center;
+        }
+        
+        .sighting-trip {
+            color: #666;
+            font-size: 0.9em;
+        }
+        
+        .sighting-notes {
+            grid-column: 1 / -1;
+            margin-top: 10px;
+            color: #555;
+            font-style: italic;
+            background: #f8f9fa;
+            padding: 8px 12px;
+            border-radius: 4px;
+            border-left: 3px solid #2c5f2d;
+            font-size: 0.9em;
+        }
+        
+        /* Empty States */
+        .empty-state {
+            text-align: center;
+            padding: 60px 30px;
+            color: #999;
+        }
+        
+        .empty-icon {
+            font-size: 4em;
+            margin-bottom: 20px;
+            color: #ddd;
+        }
+        
+        .empty-message {
+            font-size: 1.2em;
+            margin-bottom: 15px;
+        }
+        
+        .empty-submessage {
+            margin-bottom: 25px;
+        }
+        
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            .container {
+                flex-direction: column;
+            }
+            
+            .sidebar {
+                width: 100%;
+            }
+            
+            .main-content {
+                padding: 20px;
+            }
+            
+            .sighting-row {
+                grid-template-columns: 1fr;
+                gap: 5px;
+                text-align: left;
+            }
+            
+            .sighting-row > * {
+                padding: 2px 0;
+            }
+            
+            .results-stats {
+                flex-direction: column;
+                gap: 10px;
+            }
+        }
+        
+        @media (max-width: 1024px) and (min-width: 769px) {
+            .sighting-row {
+                grid-template-columns: 200px 120px 150px 80px 1fr;
+                gap: 15px;
+            }
+        }
+        
+        /* Loading and Help Text */
+        .loading {
+            color: #666;
+            font-style: italic;
+        }
+        
+        .help-text {
+            font-size: 12px;
+            color: #666;
+            margin-top: 5px;
+        }
+        
+        /* Icons */
+        .icon-home::before { content: "🏠"; }
+        .icon-list::before { content: "📋"; }
+        .icon-add::before { content: "➕"; }
+        .icon-location::before { content: "📍"; }
+        .icon-calendar::before { content: "📅"; }
+        .icon-count::before { content: "🔢"; }
+        .icon-trip::before { content: "🎯"; }
+        .icon-bird::before { content: "🦅"; }
+        .icon-search::before { content: "🔍"; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Sidebar Navigation -->
+        <nav class="sidebar">
+            <div class="sidebar-header">
+                <h2>
+                    <span class="icon">🦅</span>
+                    Bird Tracker
+                </h2>
+            </div>
+            <div class="nav-menu">
+                <div class="nav-item">
+                    <a href="{% url 'home' %}" class="nav-link">
+                        <i class="icon-home"></i>
+                        Dashboard
+                    </a>
+                </div>
+                <div class="nav-item">
+                    <a href="{% url 'lifelist' %}" class="nav-link">
+                        <i class="icon-list"></i>
+                        Life List
+                    </a>
+                </div>
+                <div class="nav-item">
+                    <a href="{% url 'location_sightings' %}" class="nav-link active">
+                        <i class="icon-location"></i>
+                        By Location
+                    </a>
+                </div>
+                <div class="nav-item">
+                    <a href="{% url 'add_sighting' %}" class="nav-link">
+                        <i class="icon-add"></i>
+                        Add Sighting
+                    </a>
+                </div>
+            </div>
+        </nav>
+        
+        <!-- Main Content -->
+        <main class="main-content">
+            <div class="page-header">
+                <h1 class="page-title">Sightings by Location</h1>
+                <p class="page-subtitle">View all your bird sightings at a specific location</p>
+            </div>
+            
+            <!-- Location Search Section -->
+            <div class="search-section">
+                <div class="search-header">
+                    <h2 class="search-title">Select a Location</h2>
+                    <p class="search-description">Search and select a location to view all sightings there (including child locations)</p>
+                </div>
+                
+                <div class="location-search-container">
+                    <input type="text" id="location-search" class="form-control" placeholder="Start typing to search locations..." autocomplete="off">
+                    <div class="location-results" id="location-results"></div>
+                    <div class="help-text">Minimum 2 characters required</div>
+                    
+                    {% if selected_location %}
+                        <div class="selected-location" id="selected-location-display">
+                            <span class="selected-location-name">{{ selected_location }}</span>
+                            <button type="button" class="clear-location" onclick="clearLocationSelection()">&times;</button>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <!-- Results Section -->
+            {% if selected_location %}
+                <div class="results-section">
+                    <div class="results-header">
+                        <h2 class="results-title">
+                            <span class="icon icon-location"></span>
+                            {{ selected_location }}
+                        </h2>
+                        <div class="results-stats">
+                            <div class="stat-item">
+                                <span class="icon icon-count"></span>
+                                <span><span class="stat-number">{{ total_sightings }}</span> total sightings</span>
+                            </div>
+                            <div class="stat-item">
+                                <span class="icon icon-bird"></span>
+                                <span><span class="stat-number">{{ unique_species }}</span> species</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    {% if child_locations %}
+                        <!-- Child locations section removed -->
+                    {% endif %}
+                    
+                    {% if sightings %}
+                        <ul class="sightings-list">
+                            {% for sighting in sightings %}
+                                <li class="sighting-item">
+                                    <div class="sighting-row">
+                                        <div class="sighting-bird">
+                                            {{ sighting.bird.english_name }}
+                                            {% if sighting.bird.latin_name %}
+                                                <div class="sighting-latin">{{ sighting.bird.latin_name }}</div>
+                                            {% endif %}
+                                        </div>
+                                        
+                                        <div class="sighting-date">{{ sighting.date_seen|date:"M j, Y" }}</div>
+                                        
+                                        <div class="sighting-location">{{ sighting.location.location_name }}</div>
+                                        
+                                        <div class="sighting-count">{{ sighting.count }}</div>
+                                        
+                                        <div class="sighting-trip">
+                                            {% if sighting.trip %}{{ sighting.trip }}{% endif %}
+                                        </div>
+                                    </div>
+                                    
+                                    {% if sighting.notes %}
+                                        <div class="sighting-notes">
+                                            {{ sighting.notes }}
+                                        </div>
+                                    {% endif %}
+                                </li>
+                            {% endfor %}
+                        </ul>
+                    {% else %}
+                        <div class="empty-state">
+                            <div class="empty-icon">🔍</div>
+                            <div class="empty-message">No sightings found</div>
+                            <div class="empty-submessage">No bird sightings have been recorded at this location yet.</div>
+                        </div>
+                    {% endif %}
+                </div>
+            {% else %}
+                <div class="results-section">
+                    <div class="empty-state">
+                        <div class="empty-icon">📍</div>
+                        <div class="empty-message">Select a location to view sightings</div>
+                        <div class="empty-submessage">Use the search box above to find and select a location</div>
+                    </div>
+                </div>
+            {% endif %}
+        </main>
+    </div>
+    
+    <script>
+        let searchTimeout;
+        let selectedLocationId = {% if selected_location %}{{ selected_location.id }}{% else %}null{% endif %};
+        
+        document.addEventListener('DOMContentLoaded', function() {
+            const locationSearch = document.getElementById('location-search');
+            const locationResults = document.getElementById('location-results');
+            
+            locationSearch.addEventListener('input', function() {
+                const query = this.value.trim();
+                
+                if (searchTimeout) {
+                    clearTimeout(searchTimeout);
+                }
+                
+                if (query.length < 2) {
+                    locationResults.style.display = 'none';
+                    return;
+                }
+                
+                searchTimeout = setTimeout(() => {
+                    searchLocations(query);
+                }, 300);
+            });
+            
+            // Hide results when clicking outside
+            document.addEventListener('click', function(e) {
+                if (!e.target.closest('.location-search-container')) {
+                    locationResults.style.display = 'none';
+                }
+            });
+        });
+        
+        function searchLocations(query) {
+            const locationResults = document.getElementById('location-results');
+            
+            locationResults.innerHTML = '<div class="location-result-item loading">Searching...</div>';
+            locationResults.style.display = 'block';
+            
+            fetch(`{% url 'search_locations' %}?q=${encodeURIComponent(query)}`)
+                .then(response => response.json())
+                .then(data => {
+                    displayLocationResults(data.locations);
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    locationResults.innerHTML = '<div class="location-result-item">Error searching locations</div>';
+                });
+        }
+        
+        function displayLocationResults(locations) {
+            const locationResults = document.getElementById('location-results');
+            
+            if (locations.length === 0) {
+                locationResults.innerHTML = '<div class="location-result-item">No locations found</div>';
+                return;
+            }
+            
+            locationResults.innerHTML = locations.map(location => `
+                <div class="location-result-item" onclick="selectLocation(${location.id}, '${location.name.replace(/'/g, "\\'")}')">
+                    ${location.display_name}
+                </div>
+            `).join('');
+        }
+        
+        function selectLocation(locationId, locationName) {
+            selectedLocationId = locationId;
+            
+            // Clear search field and hide results
+            document.getElementById('location-search').value = '';
+            document.getElementById('location-results').style.display = 'none';
+            
+            // Navigate to the page with the selected location
+            const url = new URL(window.location);
+            url.searchParams.set('location', locationId);
+            window.location.href = url.toString();
+        }
+        
+        function clearLocationSelection() {
+            selectedLocationId = null;
+            
+            // Navigate to the page without location parameter
+            const url = new URL(window.location);
+            url.searchParams.delete('location');
+            window.location.href = url.toString();
+        }
+    </script>
+</body>
+</html>

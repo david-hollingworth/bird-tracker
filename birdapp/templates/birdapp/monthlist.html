@@ -1,0 +1,649 @@
+{% extends 'birdapp/base.html' %}
+
+{% block title %}
+    {% if year and month %}{{ month_name }} {{ year }} Bird List{% elif year %}{{ year }} Bird List{% else %}All Months Bird List{% endif %} - Bird Tracker
+{% endblock %}
+
+{% block extra_css %}
+/* Month List Specific Styles - matching yearlist.html */
+.species-item {
+    transition: all 0.3s ease;
+    position: relative;
+}
+
+.species-item:hover {
+    background-color: #f8f9fa;
+    transform: translateX(5px);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+}
+
+.species-english {
+    font-size: 1.3em;
+    font-weight: 600;
+    color: var(--primary-green);
+    margin-bottom: 4px;
+    display: flex;
+    align-items: center;
+}
+
+.species-english .bi-star-fill {
+    font-size: 0.8em;
+    margin-left: 0.5rem;
+}
+
+.species-latin {
+    font-style: italic;
+    color: #666;
+    font-size: 1.05em;
+}
+
+.sighting-badge {
+    background: #e8f5e8;
+    color: var(--primary-green);
+    font-size: 0.85em;
+    font-weight: 500;
+}
+
+.sighting-badge.multiple {
+    background: #fff3cd;
+    color: #856404;
+}
+
+.species-detail {
+    color: #666;
+    font-size: 0.95em;
+}
+
+.species-detail i {
+    color: var(--primary-green);
+    width: 16px;
+    text-align: center;
+}
+
+.first-seen {
+    font-weight: 500;
+    color: #333;
+}
+
+.last-seen {
+    color: #888;
+    font-size: 0.9em;
+}
+
+.empty-lifelist {
+    text-align: center;
+    color: #999;
+}
+
+.empty-icon {
+    font-size: 4em;
+    margin-bottom: 20px;
+    color: #ddd;
+}
+
+.species-counter {
+    background: var(--primary-green);
+    color: white;
+    padding: 15px 25px;
+    border-radius: 25px;
+    font-size: 1.1em;
+    font-weight: 500;
+    box-shadow: 0 4px 8px rgba(44, 95, 45, 0.3);
+}
+
+.species-counter .number {
+    font-size: 1.3em;
+    font-weight: 300;
+}
+
+/* Month/Year selector specific styles */
+.month-selector {
+    background: white;
+    border-radius: 0.5rem;
+    box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+    border: 2px solid #e9ecef;
+}
+
+.month-selector:focus-within {
+    border-color: var(--light-green);
+    box-shadow: 0 0 0 0.2rem rgba(74, 159, 77, 0.25);
+}
+
+.year-header {
+    background: var(--primary-green);
+    color: white;
+    padding: 1rem;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+    border-radius: 0.5rem 0.5rem 0 0;
+    user-select: none;
+}
+
+.year-header:hover {
+    background: var(--hover-green);
+}
+
+.year-header.collapsed {
+    border-radius: 0.5rem;
+    margin-bottom: 0.5rem;
+}
+
+.month-option, .all-option {
+    padding: 0.75rem 1rem;
+    cursor: pointer;
+    border-bottom: 1px solid #f8f9fa;
+    transition: all 0.2s ease;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.month-option:hover, .all-option:hover {
+    background-color: #f8f9fa;
+    transform: translateX(3px);
+}
+
+.month-option.selected, .all-option.selected {
+    background-color: #e8f5e8;
+    border-left: 4px solid var(--primary-green);
+    color: var(--primary-green);
+    font-weight: 600;
+}
+
+.month-count, .year-count {
+    background: var(--primary-green);
+    color: white;
+    padding: 0.25rem 0.5rem;
+    border-radius: 15px;
+    font-size: 0.8rem;
+    font-weight: 500;
+}
+
+.month-option.selected .month-count, .all-option.selected .year-count {
+    background: white;
+    color: var(--primary-green);
+}
+
+.stats-card {
+    background: linear-gradient(135deg, var(--primary-green), var(--light-green));
+    color: white;
+    border: none;
+}
+
+.stats-number {
+    font-size: 2.5rem;
+    font-weight: 300;
+    margin-bottom: 0.5rem;
+}
+
+.stats-label {
+    font-size: 0.9rem;
+    opacity: 0.9;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.collapse-icon {
+    transition: transform 0.3s ease;
+}
+
+.collapsed .collapse-icon {
+    transform: rotate(-90deg);
+}
+
+.year-summary {
+    font-size: 0.9em;
+    opacity: 0.9;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .month-sidebar {
+        order: 2;
+        margin-top: 2rem;
+    }
+    
+    .sightings-main {
+        order: 1;
+    }
+    
+    .species-counter {
+        margin-top: 15px;
+        align-self: flex-start;
+    }
+    
+    .page-header {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+}
+{% endblock %}
+
+{% block content %}
+<div class="pt-4 pb-2 mb-4">
+    <div class="d-flex justify-content-between align-items-start flex-wrap page-header">
+        <div>
+            <h1 class="page-title display-4 mb-2">
+                {% if year and month %}
+                    {{ month_name }} {{ year }} Bird List
+                {% elif year %}
+                    {{ year }} Bird List
+                {% else %}
+                    All Months Bird List
+                {% endif %}
+            </h1>
+            <p class="text-muted fs-5">
+                {% if year and month %}
+                    Species observed during {{ month_name }} {{ year }}
+                {% elif year %}
+                    Species observed during {{ year }}
+                {% else %}
+                    All bird species organized by month and year
+                {% endif %}
+            </p>
+        </div>
+        <div class="species-counter">
+            <span class="number">{{ total_species }}</span> Species
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <!-- Month/Year Selection Sidebar -->
+    <div class="col-lg-3 col-md-4 month-sidebar">
+        <div class="card month-selector sticky-top" style="top: 1rem;">
+            <div class="card-header bg-success text-white">
+                <h5 class="card-title mb-0">
+                    <i class="bi bi-calendar-month me-2"></i>
+                    Select Period
+                </h5>
+            </div>
+            <div class="card-body p-0" style="max-height: 60vh; overflow-y: auto;">
+                <!-- All Time Option -->
+                <div class="all-option {% if not year %}selected{% endif %}" onclick="selectPeriod('', '')">
+                    <div>
+                        <div class="fw-semibold">All Time</div>
+                        <small class="text-muted">Complete history</small>
+                    </div>
+                    <span class="year-count">{{ total_all_species }}</span>
+                </div>
+                
+                <!-- Individual Years and Months -->
+                {% for year_data in available_years_data %}
+                    <div class="year-section">
+                        <div class="year-header {% if not year or year != year_data.year %}collapsed{% endif %}" 
+                             data-bs-toggle="collapse" 
+                             data-bs-target="#year-{{ year_data.year }}" 
+                             aria-expanded="{% if year == year_data.year %}true{% else %}false{% endif %}">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <div class="fw-semibold d-flex align-items-center">
+                                        <i class="bi bi-chevron-down collapse-icon me-2"></i>
+                                        {{ year_data.year }}
+                                    </div>
+                                    <div class="year-summary">
+                                        {{ year_data.year_totals.species_count }} species, {{ year_data.year_totals.sighting_count }} sightings
+                                    </div>
+                                </div>
+                                <span class="year-count">{{ year_data.year_totals.species_count }}</span>
+                            </div>
+                        </div>
+                        
+                        <div class="collapse {% if year == year_data.year %}show{% endif %}" id="year-{{ year_data.year }}">
+                            <!-- Year total option -->
+                            <div class="month-option {% if year == year_data.year and not month %}selected{% endif %}" 
+                                 onclick="selectPeriod('{{ year_data.year }}', '')">
+                                <div>
+                                    <div class="fw-semibold">All of {{ year_data.year }}</div>
+                                    <small class="text-muted">{{ year_data.year_totals.species_count }} species</small>
+                                </div>
+                                <span class="month-count">{{ year_data.year_totals.sighting_count }}</span>
+                            </div>
+                            
+                            <!-- Individual months -->
+                            {% for month_data in year_data.months %}
+                                <div class="month-option {% if year == year_data.year and month == month_data.month %}selected{% endif %}" 
+                                     onclick="selectPeriod('{{ year_data.year }}', '{{ month_data.month }}')">
+                                    <div>
+                                        <div class="fw-semibold">{{ month_data.month_name }}</div>
+                                        <small class="text-muted">{{ month_data.species_count }} species</small>
+                                    </div>
+                                    <span class="month-count">{{ month_data.sighting_count }}</span>
+                                </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+    
+    <!-- Main Species List Content -->
+    <div class="col-lg-9 col-md-8 sightings-main">
+        {% if year and month and month_stats %}
+            <!-- Month Statistics -->
+            <div class="row g-3 mb-4">
+                <div class="col-md-4">
+                    <div class="card stats-card h-100">
+                        <div class="card-body text-center">
+                            <div class="stats-number">{{ month_stats.total_sightings }}</div>
+                            <div class="stats-label">Total Sightings</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card stats-card h-100">
+                        <div class="card-body text-center">
+                            <div class="stats-number">{{ month_stats.unique_species }}</div>
+                            <div class="stats-label">Species Seen</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card stats-card h-100">
+                        <div class="card-body text-center">
+                            <div class="stats-number">{{ month_stats.new_species }}</div>
+                            <div class="stats-label">Life List Additions</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        {% endif %}
+        
+        <!-- Species List (using same format as yearlist.html) -->
+        <div class="card">
+            <div class="card-header bg-white border-bottom-2">
+                <div class="d-flex align-items-center">
+                    <i class="bi bi-list-check section-icon fs-4 me-3"></i>
+                    <h2 class="section-title h3 mb-0">
+                        {% if year and month %}
+                            Species from {{ month_name }} {{ year }}
+                        {% elif year %}
+                            Species from {{ year }}
+                        {% else %}
+                            All Bird Species
+                        {% endif %}
+                    </h2>
+                </div>
+            </div>
+            
+            <div class="card-body p-0">
+                {% if lifelist_entries %}
+                    <div class="list-group list-group-flush">
+                        {% for entry in lifelist_entries %}
+                            <div class="list-group-item species-item border-0 px-4 py-4">
+                                <div class="d-flex justify-content-between align-items-start mb-3">
+                                    <div class="flex-grow-1">
+                                        <div class="species-english">
+                                            {{ entry.bird.english_name }}
+                                            {% if entry.is_lifelist_addition %}
+                                                <i class="bi bi-star-fill text-warning ms-2" title="Life list addition"></i>
+                                            {% endif %}
+                                        </div>
+                                        {% if entry.bird.latin_name %}
+                                            <div class="species-latin">{{ entry.bird.latin_name }}</div>
+                                        {% endif %}
+                                    </div>
+                                    <div class="ms-3">
+                                        {% if entry.is_recent %}
+                                            <span class="badge sighting-badge rounded-pill">Only sighting</span>
+                                        {% else %}
+                                            <span class="badge sighting-badge multiple rounded-pill">{{ entry.total_sightings }} sighting{{ entry.total_sightings|pluralize }}</span>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                                
+                                <div class="row g-3">
+                                    <div class="col-md-4">
+                                        <div class="species-detail d-flex align-items-center">
+                                            <i class="bi bi-calendar-day me-2"></i>
+                                            <div>
+                                                <span class="first-seen">First seen: {{ entry.first_seen_date|date:"M j, Y" }}</span>
+                                                {% if not entry.is_recent %}
+                                                    <br><span class="last-seen">(Last: {{ entry.last_seen_date|date:"M j, Y" }})</span>
+                                                {% endif %}
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="col-md-4">
+                                        <div class="species-detail d-flex align-items-center">
+                                            <i class="bi bi-geo-alt me-2"></i>
+                                            {% if entry.first_sighting.location %}
+                                                <a href="{% url 'location_list' %}?location={{ entry.first_sighting.location.id }}" class="text-decoration-none">
+                                                    {{ entry.first_sighting.location }}
+                                                </a>
+                                            {% else %}
+                                                <span class="text-muted">Unknown location</span>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                    
+                                    {% if entry.first_sighting.trip %}
+                                        <div class="col-md-4">
+                                            <div class="species-detail d-flex align-items-center">
+                                                <i class="bi bi-flag me-2"></i>
+                                                {{ entry.first_sighting.trip }}
+                                            </div>
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <div class="empty-lifelist py-5">
+                        <div class="empty-icon mb-4">
+                            <i class="bi bi-calendar-x"></i>
+                        </div>
+                        <h3 class="h4 mb-3">
+                            {% if year and month %}
+                                No species recorded for {{ month_name }} {{ year }}
+                            {% elif year %}
+                                No species recorded for {{ year }}
+                            {% else %}
+                                No species recorded yet
+                            {% endif %}
+                        </h3>
+                        <p class="mb-4">
+                            {% if year and month %}
+                                Try selecting a different month/year or add some sightings for {{ month_name }} {{ year }}.
+                            {% elif year %}
+                                Try selecting a different year or add some sightings for {{ year }}.
+                            {% else %}
+                                Start building your bird list by recording your first bird observation!
+                            {% endif %}
+                        </p>
+                        <a href="{% url 'add_sighting' %}" class="btn btn-success btn-lg">
+                            <i class="bi bi-plus-circle me-2"></i>
+                            Add New Sighting
+                        </a>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Advanced Pagination Controls -->
+{% if page_obj and is_paginated %}
+<div class="d-flex justify-content-center mt-4">
+    <nav aria-label="Month list pagination">
+        <ul class="pagination pagination-lg">
+            {% if page_obj.has_previous %}
+                <li class="page-item">
+                    <a class="page-link" href="?page=1{% if current_page_size != '20' %}&page_size={{ current_page_size }}{% endif %}{% if year %}&year={{ year }}{% endif %}{% if month %}&month={{ month }}{% endif %}" aria-label="First">
+                        <span aria-hidden="true">&laquo;&laquo;</span>
+                    </a>
+                </li>
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if current_page_size != '20' %}&page_size={{ current_page_size }}{% endif %}{% if year %}&year={{ year }}{% endif %}{% if month %}&month={{ month }}{% endif %}" aria-label="Previous">
+                        <span aria-hidden="true">&laquo;</span>
+                    </a>
+                </li>
+            {% else %}
+                <li class="page-item disabled">
+                    <span class="page-link">&laquo;&laquo;</span>
+                </li>
+                <li class="page-item disabled">
+                    <span class="page-link">&laquo;</span>
+                </li>
+            {% endif %}
+
+            <!-- Smart pagination with ellipsis -->
+            {% for num in page_obj.paginator.page_range %}
+                {% if page_obj.number == num %}
+                    <li class="page-item active">
+                        <span class="page-link">{{ num }}</span>
+                    </li>
+                {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ num }}{% if current_page_size != '20' %}&page_size={{ current_page_size }}{% endif %}{% if year %}&year={{ year }}{% endif %}{% if month %}&month={{ month }}{% endif %}">{{ num }}</a>
+                    </li>
+                {% elif num == 1 %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ num }}{% if current_page_size != '20' %}&page_size={{ current_page_size }}{% endif %}{% if year %}&year={{ year }}{% endif %}{% if month %}&month={{ month }}{% endif %}">{{ num }}</a>
+                    </li>
+                    {% if page_obj.number > 4 %}
+                        <li class="page-item disabled">
+                            <span class="page-link">...</span>
+                        </li>
+                    {% endif %}
+                {% elif num == page_obj.paginator.num_pages %}
+                    {% if page_obj.number < page_obj.paginator.num_pages|add:'-3' %}
+                        <li class="page-item disabled">
+                            <span class="page-link">...</span>
+                        </li>
+                    {% endif %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ num }}{% if current_page_size != '20' %}&page_size={{ current_page_size }}{% endif %}{% if year %}&year={{ year }}{% endif %}{% if month %}&month={{ month }}{% endif %}">{{ num }}</a>
+                    </li>
+                {% endif %}
+            {% endfor %}
+
+            {% if page_obj.has_next %}
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ page_obj.next_page_number }}{% if current_page_size != '20' %}&page_size={{ current_page_size }}{% endif %}{% if year %}&year={{ year }}{% endif %}{% if month %}&month={{ month }}{% endif %}" aria-label="Next">
+                        <span aria-hidden="true">&raquo;</span>
+                    </a>
+                </li>
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ page_obj.paginator.num_pages }}{% if current_page_size != '20' %}&page_size={{ current_page_size }}{% endif %}{% if year %}&year={{ year }}{% endif %}{% if month %}&month={{ month }}{% endif %}" aria-label="Last">
+                        <span aria-hidden="true">&raquo;&raquo;</span>
+                    </a>
+                </li>
+            {% else %}
+                <li class="page-item disabled">
+                    <span class="page-link">&raquo;</span>
+                </li>
+                <li class="page-item disabled">
+                    <span class="page-link">&raquo;&raquo;</span>
+                </li>
+            {% endif %}
+        </ul>
+    </nav>
+</div>
+
+<!-- Page Summary for Mobile -->
+<div class="d-flex justify-content-center mt-2 d-lg-none">
+    <small class="text-muted">
+        Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}
+    </small>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function selectPeriod(selectedYear, selectedMonth) {
+    const url = new URL(window.location);
+    
+    // Clear existing parameters
+    url.searchParams.delete('year');
+    url.searchParams.delete('month');
+    url.searchParams.delete('page'); // Reset to first page when changing period
+    
+    // Set new parameters
+    if (selectedYear) {
+        url.searchParams.set('year', selectedYear);
+        if (selectedMonth) {
+            url.searchParams.set('month', selectedMonth);
+        }
+    }
+    
+    // Preserve pagination settings
+    const pageSize = url.searchParams.get('page_size');
+    if (pageSize && pageSize !== '20') {
+        url.searchParams.set('page_size', pageSize);
+    }
+    
+    window.location.href = url.toString();
+}
+
+function changePageSize(pageSize) {
+    const url = new URL(window.location);
+    url.searchParams.set('page_size', pageSize);
+    url.searchParams.delete('page'); // Reset to first page when changing page size
+    window.location.href = url.toString();
+}
+
+// Handle collapsible year sections
+document.addEventListener('DOMContentLoaded', function() {
+    // Add smooth scrolling and visual feedback for month/year options
+    const periodOptions = document.querySelectorAll('.month-option, .all-option');
+    periodOptions.forEach(option => {
+        option.addEventListener('click', function() {
+            // Add visual feedback
+            this.style.transform = 'scale(0.98)';
+            setTimeout(() => {
+                this.style.transform = '';
+            }, 150);
+        });
+    });
+    
+    // Handle year header clicks
+    const yearHeaders = document.querySelectorAll('.year-header');
+    yearHeaders.forEach(header => {
+        header.addEventListener('click', function() {
+            // Visual feedback for year header
+            this.style.transform = 'scale(0.98)';
+            setTimeout(() => {
+                this.style.transform = '';
+            }, 150);
+        });
+    });
+    
+    // Auto-expand the current year section
+    const currentYear = {{ year|default:'null' }};
+    if (currentYear) {
+        const yearCollapse = document.getElementById(`year-${currentYear}`);
+        if (yearCollapse && !yearCollapse.classList.contains('show')) {
+            const yearHeader = document.querySelector(`[data-bs-target="#year-${currentYear}"]`);
+            if (yearHeader) {
+                yearHeader.click();
+            }
+        }
+    }
+});
+
+// Handle Bootstrap collapse events for smooth icon rotation
+document.addEventListener('DOMContentLoaded', function() {
+    const collapseElements = document.querySelectorAll('.collapse');
+    collapseElements.forEach(function(collapseElement) {
+        collapseElement.addEventListener('show.bs.collapse', function() {
+            const header = document.querySelector(`[data-bs-target="#${this.id}"]`);
+            if (header) {
+                header.classList.remove('collapsed');
+            }
+        });
+        
+        collapseElement.addEventListener('hide.bs.collapse', function() {
+            const header = document.querySelector(`[data-bs-target="#${this.id}"]`);
+            if (header) {
+                header.classList.add('collapsed');
+            }
+        });
+    });
+});
+</script>
+{% endblock %}
