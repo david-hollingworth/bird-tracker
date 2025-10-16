@@ -307,8 +307,6 @@ def location_bulk_delete(request):
     })
 
 
-# Add this to your location_views.py file (or update if it already exists)
-
 def search_locations(request):
     """AJAX endpoint to search locations by name"""
     from django.http import JsonResponse

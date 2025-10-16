@@ -1,0 +1,671 @@
+{% extends 'birdapp/base.html' %}
+{% load widget_extras %}
+
+{% block title %}Add Bird Sighting - Bird Tracker{% endblock %}
+
+{% block extra_css %}
+<style>
+
+.bird-search-container, .location-search-container {
+    position: relative;
+}
+
+.bird-results, .location-results {
+    position: relative;
+    top: 100%;
+    left: 0;
+    right: 0;
+    background: white;
+    border: 2px solid #dee2e6;
+    border-top: none;
+    border-radius: 0 0 0.375rem 0.375rem;
+    max-height: 200px;
+    overflow-y: auto;
+    z-index: 1050;
+    display: none;
+    box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+    width: 100%;
+}
+
+#bird-search, #location-search {
+    position: relative;
+    z-index: 1;
+}
+
+.bird-search-container.searching #bird-search,
+.location-search-container.searching #location-search {
+    border-radius: 0.375rem 0.375rem 0 0;
+    border-bottom-color: #dee2e6;
+}
+
+.bird-result-item, .location-result-item {
+    padding: 0.75rem 1rem;
+    cursor: pointer;
+    border-bottom: 1px solid #f8f9fa;
+    transition: background-color 0.15s ease-in-out;
+}
+
+.bird-result-item:hover, .location-result-item:hover {
+    background-color: #f8f9fa;
+}
+
+.bird-result-item:last-child, .location-result-item:last-child {
+    border-bottom: none;
+}
+
+.bird-result-name, .location-result-name {
+    font-weight: 500;
+    color: #333;
+}
+
+.bird-result-latin, .location-result-path {
+    font-style: italic;
+    color: #6c757d;
+    font-size: 0.875rem;
+    margin-top: 0.125rem;
+}
+
+.selected-bird, .selected-location {
+    background-color: #e8f5e8;
+    padding: 0.75rem 1rem;
+    border: 2px solid var(--primary-green);
+    border-radius: 0.375rem;
+    margin-top: 0.5rem;
+    position: relative;
+}
+
+.selected-bird-name, .selected-location-name {
+    font-weight: 600;
+    color: var(--primary-green);
+    margin-bottom: 0.25rem;
+}
+
+.selected-bird-latin, .selected-location-path {
+    font-style: italic;
+    color: #6c757d;
+    font-size: 0.875rem;
+}
+
+.clear-bird, .clear-location {
+    background: none;
+    border: none;
+    color: #dc3545;
+    cursor: pointer;
+    position: absolute;
+    top: 0.5rem;
+    right: 0.75rem;
+    font-size: 1.25rem;
+    padding: 0;
+    width: 1.5rem;
+    height: 1.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    transition: background-color 0.15s ease-in-out;
+}
+
+.clear-bird:hover, .clear-location:hover {
+    background-color: rgba(220, 53, 69, 0.1);
+}
+
+.loading {
+    color: #6c757d;
+    font-style: italic;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="pt-4 pb-2 mb-4">
+    <h1 class="page-title display-4 mb-2">
+        <i class="bi bi-plus-circle section-icon me-3"></i>
+        Add Bird Sighting
+    </h1>
+    <p class="text-muted fs-5">Record a new bird observation</p>
+</div>
+
+<!-- Messages -->
+{% if messages %}
+    <div class="row mb-4">
+        <div class="col-12">
+            {% for message in messages %}
+                <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                    {% if message.tags == 'success' %}
+                        <i class="bi bi-check-circle me-2"></i>
+                    {% elif message.tags == 'error' %}
+                        <i class="bi bi-exclamation-triangle me-2"></i>
+                    {% endif %}
+                    {{ message }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+            {% endfor %}
+        </div>
+    </div>
+{% endif %}
+
+<!-- Main Form -->
+<div class="row">
+    <div class="col-lg-8 col-xl-6">
+        <div class="form-section">
+            <form method="post" id="sighting-form">
+                {% csrf_token %}
+                
+                <!-- Bird Search Section -->
+                <div class="mb-4">
+                    <label for="bird-search" class="form-label fw-semibold">
+                        <i class="bi bi-search me-2 text-success"></i>
+                        Search for Bird
+                    </label>
+                    <div class="bird-search-container">
+                        <input type="text" class="form-control form-control-lg" id="bird-search" placeholder="Start typing to search for birds...">
+                        <div class="bird-results" id="bird-results"></div>
+                    </div>
+                    <div class="form-text">
+                        <i class="bi bi-info-circle me-1"></i>
+                        Start typing to search for birds (minimum 2 characters)
+                    </div>
+                    
+                    <!-- Selected Bird Display -->
+                    <div id="selected-bird-display" style="display: none">
+                        <div class="selected-bird">
+                            <button type="button" class="clear-bird" onclick="clearBirdSelection()" title="Clear selection">&times;</button>
+                            <div class="selected-bird-name" id="selected-bird-name"></div>
+                            <div class="selected-bird-latin" id="selected-bird-latin"></div>
+                        </div>
+                    </div>
+                    
+                    <!-- Bird field errors -->
+                    {% if form.bird.errors %}
+                        <div class="text-danger mt-2">
+                            {% for error in form.bird.errors %}
+                                <small><i class="bi bi-exclamation-circle me-1"></i>{{ error }}</small><br>
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+                </div>
+                
+                <!-- Hidden Bird Select Field -->
+                <div style="display: none">
+                    {{ form.bird }}
+                </div>
+                
+                <!-- Location Search Section (NEW - replaces select dropdown) -->
+                <div class="mb-4">
+                    <label for="location-search" class="form-label fw-semibold">
+                        <i class="bi bi-geo-alt me-2 text-success"></i>
+                        Search for Location
+                    </label>
+                    <div class="location-search-container">
+                        <input type="text" class="form-control form-control-lg" id="location-search" placeholder="Start typing to search for locations...">
+                        <div class="location-results" id="location-results"></div>
+                    </div>
+                    <div class="form-text">
+                        <i class="bi bi-info-circle me-1"></i>
+                        Start typing to search for locations (minimum 2 characters)
+                    </div>
+                    
+                    <!-- Selected Location Display -->
+                    <div id="selected-location-display" style="display: none">
+                        <div class="selected-location">
+                            <button type="button" class="clear-location" onclick="clearLocationSelection()" title="Clear selection">&times;</button>
+                            <div class="selected-location-name" id="selected-location-name"></div>
+                            <div class="selected-location-path" id="selected-location-path"></div>
+                        </div>
+                    </div>
+                    
+                    <!-- Location field errors -->
+                    {% if form.location.errors %}
+                        <div class="text-danger mt-2">
+                            {% for error in form.location.errors %}
+                                <small><i class="bi bi-exclamation-circle me-1"></i>{{ error }}</small><br>
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+                </div>
+                
+                <!-- Hidden Location Select Field -->
+                <div style="display: none">
+                    {{ form.location }}
+                </div>
+                
+                <!-- Trip Field -->
+                <div class="mb-4">
+                    <label for="{{ form.trip.id_for_label }}" class="form-label fw-semibold">
+                        <i class="bi bi-flag me-2 text-success"></i>
+                        {{ form.trip.label }}
+                    </label>
+                    <select class="form-control form-control-lg" name="{{ form.trip.name }}" id="{{ form.trip.id_for_label }}">
+                        <option value="">---------</option>
+                        {% for value, text in form.trip.field.choices %}
+                            {% if value %}
+                                <option value="{{ value }}"{% if form.trip.value == value %} selected{% endif %}>{{ text }}</option>
+                            {% endif %}
+                        {% endfor %}
+                    </select>
+                    <div class="form-text">
+                        <i class="bi bi-info-circle me-1"></i>
+                        Optional: Select a trip this sighting belongs to
+                    </div>
+                    {% if form.trip.errors %}
+                        <div class="text-danger mt-2">
+                            {% for error in form.trip.errors %}
+                                <small><i class="bi bi-exclamation-circle me-1"></i>{{ error }}</small><br>
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+                </div>
+                
+                <!-- Date and Details Row -->
+                <div class="row mb-4">
+                    <div class="col-md-6 mb-3 mb-md-0">
+                        <label for="{{ form.date_seen.id_for_label }}" class="form-label fw-semibold">
+                            <i class="bi bi-calendar-date me-2 text-success"></i>
+                            {{ form.date_seen.label }}
+                        </label>
+                        <input type="date" class="form-control" name="{{ form.date_seen.name }}" id="{{ form.date_seen.id_for_label }}" value="{{ form.date_seen.value|default:'' }}">
+                        {% if form.date_seen.errors %}
+                            <div class="text-danger mt-2">
+                                {% for error in form.date_seen.errors %}
+                                    <small><i class="bi bi-exclamation-circle me-1"></i>{{ error }}</small><br>
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="col-md-6">
+                        <label for="{{ form.count.id_for_label }}" class="form-label fw-semibold">
+                            <i class="bi bi-hash me-2 text-success"></i>
+                            {{ form.count.label }}
+                        </label>
+                        <input type="number" class="form-control" name="{{ form.count.name }}" id="{{ form.count.id_for_label }}" value="{{ form.count.value|default:'1' }}" min="1">
+                        {% if form.count.errors %}
+                            <div class="text-danger mt-2">
+                                {% for error in form.count.errors %}
+                                    <small><i class="bi bi-exclamation-circle me-1"></i>{{ error }}</small><br>
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+                
+                <!-- Heard Not Seen Checkbox -->
+                <div class="mb-4">
+                    <div class="form-check form-check-lg">
+                        <input class="form-check-input" type="checkbox" name="{{ form.heard_not_seen.name }}" id="{{ form.heard_not_seen.id_for_label }}"{% if form.heard_not_seen.value %} checked{% endif %}>
+                        <label class="form-check-label fw-semibold" for="{{ form.heard_not_seen.id_for_label }}">
+                            <i class="bi bi-volume-up me-2 text-success"></i>
+                            {{ form.heard_not_seen.label }}
+                        </label>
+                    </div>
+                    <div class="form-text ms-4">
+                        <i class="bi bi-info-circle me-1"></i>
+                        Check this if you heard the bird but didn't see it
+                    </div>
+                    {% if form.heard_not_seen.errors %}
+                        <div class="text-danger mt-2">
+                            {% for error in form.heard_not_seen.errors %}
+                                <small><i class="bi bi-exclamation-circle me-1"></i>{{ error }}</small><br>
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+                </div>
+                
+                <!-- Notes Field -->
+                <div class="mb-4">
+                    <label for="{{ form.notes.id_for_label }}" class="form-label fw-semibold">
+                        <i class="bi bi-chat-quote me-2 text-success"></i>
+                        {{ form.notes.label }}
+                    </label>
+                    <textarea class="form-control" name="{{ form.notes.name }}" id="{{ form.notes.id_for_label }}" rows="3" placeholder="Optional: Add any additional observations or notes">{{ form.notes.value|default:'' }}</textarea>
+                    <div class="form-text">
+                        <i class="bi bi-info-circle me-1"></i>
+                        Optional: Add any additional observations or notes
+                    </div>
+                    {% if form.notes.errors %}
+                        <div class="text-danger mt-2">
+                            {% for error in form.notes.errors %}
+                                <small><i class="bi bi-exclamation-circle me-1"></i>{{ error }}</small><br>
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+                </div>
+                
+                <!-- Form Errors (if any non-field errors) -->
+                {% if form.non_field_errors %}
+                    <div class="alert alert-danger mb-4">
+                        <i class="bi bi-exclamation-triangle me-2"></i>
+                        {% for error in form.non_field_errors %}
+                            {{ error }}
+                        {% endfor %}
+                    </div>
+                {% endif %}
+                
+                <!-- Submit Buttons -->
+                <div class="d-flex gap-3 pt-3 border-top">
+                    <button type="button" onclick="history.back()" class="btn btn-outline-secondary btn-lg">
+                        <i class="bi bi-arrow-left me-2"></i>
+                        Cancel
+                    </button>
+                    <button type="submit" class="btn btn-success btn-lg">
+                        <i class="bi bi-check-circle me-2"></i>
+                        Save Sighting
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    <!-- Quick Help Sidebar -->
+    <div class="col-lg-4 col-xl-6">
+        <div class="card">
+            <div class="card-header bg-success text-white">
+                <h5 class="card-title mb-0">
+                    <i class="bi bi-lightbulb me-2"></i>
+                    Quick Tips
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="d-flex align-items-start mb-3">
+                    <i class="bi bi-search text-success me-3 fs-5 flex-shrink-0 mt-1"></i>
+                    <div>
+                        <h6 class="mb-1">Bird & Location Search</h6>
+                        <small class="text-muted">Type at least 2 characters to search. Click on a result to select it.</small>
+                    </div>
+                </div>
+                
+                <div class="d-flex align-items-start mb-3">
+                    <i class="bi bi-calendar-date text-success me-3 fs-5 flex-shrink-0 mt-1"></i>
+                    <div>
+                        <h6 class="mb-1">Date Format</h6>
+                        <small class="text-muted">Use the date picker or enter in YYYY-MM-DD format.</small>
+                    </div>
+                </div>
+                
+                <div class="d-flex align-items-start mb-3">
+                    <i class="bi bi-hash text-success me-3 fs-5 flex-shrink-0 mt-1"></i>
+                    <div>
+                        <h6 class="mb-1">Count</h6>
+                        <small class="text-muted">Enter the number of individuals observed. Default is 1.</small>
+                    </div>
+                </div>
+                
+                <div class="d-flex align-items-start">
+                    <i class="bi bi-volume-up text-success me-3 fs-5 flex-shrink-0 mt-1"></i>
+                    <div>
+                        <h6 class="mb-1">Heard vs Seen</h6>
+                        <small class="text-muted">Check "Heard, not seen" if you only heard the bird's call or song.</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    let searchTimeout;
+    let selectedBirdId = null;
+    let selectedLocationId = null;
+    
+    document.addEventListener('DOMContentLoaded', function() {
+        const birdSearch = document.getElementById('bird-search');
+        const birdResults = document.getElementById('bird-results');
+        const birdSelect = document.getElementById('{{ form.bird.id_for_label }}');
+        const selectedBirdDisplay = document.getElementById('selected-bird-display');
+        
+        const locationSearch = document.getElementById('location-search');
+        const locationResults = document.getElementById('location-results');
+        const locationSelect = document.getElementById('{{ form.location.id_for_label }}');
+        const selectedLocationDisplay = document.getElementById('selected-location-display');
+        
+        // Bird search event listener
+        birdSearch.addEventListener('input', function() {
+            const query = this.value.trim();
+            
+            if (searchTimeout) {
+                clearTimeout(searchTimeout);
+            }
+            
+            if (query.length < 2) {
+                birdResults.style.display = 'none';
+                return;
+            }
+            
+            searchTimeout = setTimeout(() => {
+                searchBirds(query);
+            }, 300);
+        });
+        
+        // Location search event listener
+        locationSearch.addEventListener('input', function() {
+            const query = this.value.trim();
+            
+            if (searchTimeout) {
+                clearTimeout(searchTimeout);
+            }
+            
+            if (query.length < 2) {
+                locationResults.style.display = 'none';
+                return;
+            }
+            
+            searchTimeout = setTimeout(() => {
+                searchLocations(query);
+            }, 300);
+        });
+        
+        // Hide results when clicking outside
+        document.addEventListener('click', function(e) {
+            if (!e.target.closest('.bird-search-container')) {
+                birdResults.style.display = 'none';
+            }
+            if (!e.target.closest('.location-search-container')) {
+                locationResults.style.display = 'none';
+            }
+        });
+        
+        // Set today's date as default if field is empty
+        const dateField = document.getElementById('{{ form.date_seen.id_for_label }}');
+        if (dateField && !dateField.value) {
+            const today = new Date().toISOString().split('T')[0];
+            dateField.value = today;
+        }
+    });
+    
+    // Bird search functions
+    function displayBirdResults(birds) {
+        const birdResults = document.getElementById('bird-results');
+        
+        if (birds.length === 0) {
+            birdResults.innerHTML = '<div class="bird-result-item">No birds found</div>';
+            birdResults.style.display = 'block';
+            return;
+        }
+        
+        birdResults.innerHTML = '';
+        
+        birds.forEach(bird => {
+            const resultItem = document.createElement('div');
+            resultItem.className = 'bird-result-item';
+            resultItem.style.cursor = 'pointer';
+            
+            resultItem.addEventListener('click', function() {
+                selectBird(bird.id, bird.english_name, bird.latin_name || '');
+            });
+            
+            const nameDiv = document.createElement('div');
+            nameDiv.className = 'bird-result-name';
+            nameDiv.textContent = bird.english_name;
+            resultItem.appendChild(nameDiv);
+            
+            if (bird.latin_name) {
+                const latinDiv = document.createElement('div');
+                latinDiv.className = 'bird-result-latin';
+                latinDiv.textContent = bird.latin_name;
+                resultItem.appendChild(latinDiv);
+            }
+            
+            birdResults.appendChild(resultItem);
+        });
+        
+        birdResults.style.display = 'block';
+    }
+
+    function selectBird(birdId, englishName, latinName) {
+        selectedBirdId = birdId;
+        
+        const birdSelect = document.getElementById('{{ form.bird.id_for_label }}');
+        
+        let option = birdSelect.querySelector(`option[value="${birdId}"]`);
+        if (!option) {
+            option = document.createElement('option');
+            option.value = birdId;
+            option.textContent = englishName;
+            birdSelect.appendChild(option);
+        }
+        birdSelect.value = birdId;
+        
+        document.getElementById('bird-search').value = '';
+        document.getElementById('bird-results').style.display = 'none';
+        
+        document.getElementById('selected-bird-name').textContent = englishName;
+        document.getElementById('selected-bird-latin').textContent = latinName || '';
+        document.getElementById('selected-bird-display').style.display = 'block';
+
+        document.querySelector('.bird-search-container').classList.add('searching');
+    }
+
+    function clearBirdSelection() {
+        selectedBirdId = null;
+        document.getElementById('{{ form.bird.id_for_label }}').value = '';
+        document.getElementById('selected-bird-display').style.display = 'none';
+        document.getElementById('bird-search').focus();
+    }
+
+    function searchBirds(query) {
+        const birdResults = document.getElementById('bird-results');
+        
+        birdResults.innerHTML = '<div class="bird-result-item loading">Searching...</div>';
+        birdResults.style.display = 'block';
+        
+        fetch(`{% url 'search_birds' %}?q=${encodeURIComponent(query)}`)
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                return response.json();
+            })
+            .then(data => {
+                if (data && data.birds) {
+                    displayBirdResults(data.birds);
+                } else {
+                    console.error('Invalid response format:', data);
+                    birdResults.innerHTML = '<div class="bird-result-item">Error: Invalid response format</div>';
+                }
+            })
+            .catch(error => {
+                console.error('Search error:', error);
+                birdResults.innerHTML = '<div class="bird-result-item">Error searching birds</div>';
+            });
+    }
+    
+    // Location search functions
+    function displayLocationResults(locations) {
+        const locationResults = document.getElementById('location-results');
+        
+        if (locations.length === 0) {
+            locationResults.innerHTML = '<div class="location-result-item">No locations found</div>';
+            locationResults.style.display = 'block';
+            return;
+        }
+        
+        locationResults.innerHTML = '';
+        
+        locations.forEach(location => {
+            const resultItem = document.createElement('div');
+            resultItem.className = 'location-result-item';
+            resultItem.style.cursor = 'pointer';
+            
+            resultItem.addEventListener('click', function() {
+                selectLocation(location.id, location.location_name, location.full_path || '');
+            });
+            
+            const nameDiv = document.createElement('div');
+            nameDiv.className = 'location-result-name';
+            nameDiv.textContent = location.location_name;
+            resultItem.appendChild(nameDiv);
+            
+            if (location.full_path && location.full_path !== location.location_name) {
+                const pathDiv = document.createElement('div');
+                pathDiv.className = 'location-result-path';
+                pathDiv.textContent = location.full_path;
+                resultItem.appendChild(pathDiv);
+            }
+            
+            locationResults.appendChild(resultItem);
+        });
+        
+        locationResults.style.display = 'block';
+    }
+
+    function selectLocation(locationId, locationName, fullPath) {
+        selectedLocationId = locationId;
+        
+        const locationSelect = document.getElementById('{{ form.location.id_for_label }}');
+        
+        let option = locationSelect.querySelector(`option[value="${locationId}"]`);
+        if (!option) {
+            option = document.createElement('option');
+            option.value = locationId;
+            option.textContent = locationName;
+            locationSelect.appendChild(option);
+        }
+        locationSelect.value = locationId;
+        
+        document.getElementById('location-search').value = '';
+        document.getElementById('location-results').style.display = 'none';
+        
+        document.getElementById('selected-location-name').textContent = locationName;
+        document.getElementById('selected-location-path').textContent = fullPath || '';
+        document.getElementById('selected-location-display').style.display = 'block';
+
+        document.querySelector('.location-search-container').classList.add('searching');
+    }
+
+    function clearLocationSelection() {
+        selectedLocationId = null;
+        document.getElementById('{{ form.location.id_for_label }}').value = '';
+        document.getElementById('selected-location-display').style.display = 'none';
+        document.getElementById('location-search').focus();
+    }
+
+    function searchLocations(query) {
+        const locationResults = document.getElementById('location-results');
+        
+        locationResults.innerHTML = '<div class="location-result-item loading">Searching...</div>';
+        locationResults.style.display = 'block';
+        
+        fetch(`{% url 'search_locations' %}?q=${encodeURIComponent(query)}`)
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                return response.json();
+            })
+            .then(data => {
+                if (data && data.locations) {
+                    displayLocationResults(data.locations);
+                } else {
+                    console.error('Invalid response format:', data);
+                    locationResults.innerHTML = '<div class="location-result-item">Error: Invalid response format</div>';
+                }
+            })
+            .catch(error => {
+                console.error('Search error:', error);
+                locationResults.innerHTML = '<div class="location-result-item">Error searching locations</div>';
+            });
+    }
+</script>
+{% endblock %}
