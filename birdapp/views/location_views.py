@@ -307,26 +307,30 @@ def location_bulk_delete(request):
     })
 
 
+# Add this to your location_views.py file (or update if it already exists)
+
 def search_locations(request):
-    """AJAX endpoint for location autocomplete search"""
-    query = request.GET.get('q', '')
+    """AJAX endpoint to search locations by name"""
+    from django.http import JsonResponse
+    from ..models import Location
     
-    if len(query) < 2:
-        return JsonResponse({'results': []})
+    query = request.GET.get('q', '').strip()
+    
+    if len(query) < 2:  # Require at least 2 characters
+        return JsonResponse({'locations': []})
     
     locations = Location.objects.filter(
         location_name__icontains=query
-    ).order_by('location_name')[:20]
+    ).select_related('parent_location').order_by('location_name')[:20]  # Limit to 20 results
     
-    results = []
-    for location in locations:
-        results.append({
-            'id': location.id,
-            'text': location.get_full_path_string(),
-            'name': location.location_name,
-        })
+    location_data = [{
+        'id': location.id,
+        'location_name': location.location_name,
+        'full_path': location.get_full_path_string(),
+        'display_name': location.get_full_path_string()
+    } for location in locations]
     
-    return JsonResponse({'results': results})
+    return JsonResponse({'locations': location_data})
 
 
 def location_sightings(request):
